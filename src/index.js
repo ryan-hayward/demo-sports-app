@@ -6,9 +6,10 @@ const path = require('path')
 const express = require('express')
 
 
-//local imports
+//import DB
+require(('./db/postgres'))
 
-
+//routers (set up later)
 
 
 //set up express app
