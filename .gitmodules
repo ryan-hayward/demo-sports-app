@@ -1,0 +1,3 @@
+[submodule "pro-football-reference-web-scraper"]
+	path = pro-football-reference-web-scraper
+	url = https://github.com/ryan-hayward/pro-football-reference-web-scraper.git
