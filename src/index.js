@@ -1,18 +1,7 @@
-//vanilla
-const http = require('http')
-const path = require('path')
+const app = require('./app')
 
-//npm installs
-const express = require('express')
+const port = process.env.PORT
 
-
-//import DB
-require(('./db/postgres'))
-
-//routers (set up later)
-
-
-//set up express app
-const app = express()
-const server = http.createServer(app)
-const port = process.env.PORT || 3000
+app.listen(port, () => {
+    console.log('Server is up and running on port ' + port)
+})

@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "env-cmd -f ./config/dev.env nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "mongo": "/Users/rchayward/mongodb/bin/mongod --dbpath=/Users/rchayward/mongodb-data"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
   },
   "dependencies": {
     "express": "^4.18.2",
+    "mongoose": "^8.0.2",
     "postgres": "^3.4.3"
   }
 }
