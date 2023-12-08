@@ -4,6 +4,28 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 //const Task = require('../task')
 
+const gameLogSchema = new mongoose.Schema({
+    date: String,
+    week: Number,
+    team: String,
+    gameLocation: String,
+    opponent: String,
+    result: String,
+    teamPoints: Number,
+    oppPoints: Number,
+    completions: Number,
+    attempts: Number,
+    passYards: Number,
+    passTD: Number,
+    interceptions: Number,
+    QBR: Number,
+    sackedQty: Number,
+    rushAttempts: Number,
+    rushYds: Number,
+    rushTDs: Number
+})
+
+
 //user schema
 const userSchema = new mongoose.Schema({
     name: {
@@ -112,4 +134,9 @@ userSchema.pre('remove', async function(next) {
 //user model
 const User = new mongoose.model('User', userSchema)
 
-module.exports = User
+const GameLog = new mongoose.model('GameLog', gameLogSchema)
+
+module.exports = {
+    User,
+    GameLog
+}
