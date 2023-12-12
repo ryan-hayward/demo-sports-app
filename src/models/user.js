@@ -136,7 +136,4 @@ const User = new mongoose.model('User', userSchema)
 
 const GameLog = new mongoose.model('GameLog', gameLogSchema)
 
-module.exports = {
-    User,
-    GameLog
-}
+module.exports = User

@@ -1,7 +1,7 @@
 const express = require('express')
 require('./db/mongoose')
 require('./db/postgres')
-const userRouter = require('./routers/user')
+const userRouter = require('./routers/player-data')
 
 const app = express()
 
