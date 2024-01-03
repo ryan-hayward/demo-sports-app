@@ -1,5 +1,5 @@
-from python import eligible_players
-from python import generic_game_log
+from eligible_players import eligible_players
+from generic_game_log import generic_game_log
 import psycopg2 as pg2
 
 con = pg2.connect(
