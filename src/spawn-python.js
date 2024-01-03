@@ -1,5 +1,5 @@
 const spawn = require("child_process").spawn
-const ROUTERPATH = "pro-football-reference-web-scraper/pro_football_reference_web_scraper/node_router.py"
+const ROUTERPATH = "src/python/node_router.py"
 
 /**
  * Function to get a player's game log
