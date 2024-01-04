@@ -5,7 +5,7 @@ import time
 
 VALID_POSITIONS = ['QB', 'RB', 'FB', 'WR', 'TE', 'K']
 REQUEST_COUNTER = 0
-ELEMENT_TABLE = pd.read_csv('src/python/data/field_player_mapping.csv')
+ELEMENT_TABLE = pd.read_csv('data_collection/data/field_player_mapping.csv')
 
 '''
 @NOTE: ENHANCEMENT of player_game_log.py, written by Michael Kim
