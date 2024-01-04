@@ -1,0 +1,39 @@
+
+# import packages required to connect with our database
+import psycopg2
+from sqlalchemy import create_engine
+
+# import configuration and set up the db connection url and engine
+from db_config import config
+params = config()
+connection_url = 'postgresql://%s:%s@%s/%s' % (params['user'], params['password'], params['host'], params['database'])
+engine = create_engine(connection_url)
+
+# add parent directory to sys.path and import package from sibling module
+import sys
+sys.path.append('./data_collection')
+import scripts.generic_game_log as game_log
+
+def create_engine():
+    return create_engine()
+
+engine = create_engine(connection_url)
+
+df = game_log.get_player_game_log("Christian McCaffrey", "RB", 2022)
+
+df.to_sql('player_data', con=engine, if_exists='replace', index=False) 
+
+conn = psycopg2.connect(connection_url) 
+conn.autocommit = True
+cursor = conn.cursor() 
+  
+# sql1 = '''select * from player_data;'''
+
+cursor.execute(sql1) 
+
+for i in cursor.fetchall(): 
+    print(i) 
+  
+conn.commit() 
+conn.close() 
+cursor.close()
