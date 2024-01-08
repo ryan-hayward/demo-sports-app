@@ -16,6 +16,7 @@ A function that takes statistic type and year as arguments and returns a pandas 
     Args:
         stat_type (str): passing, rushing, receiving, kicking
         year (int): year in which the statistics were accumulated
+        counter (int): amount of web page hits from accumulated previous calls
 
     Returns:
         pandas.Dataframe with the following attributes: season ID (str), playerID (str), name (str), position (str), 
@@ -24,7 +25,11 @@ A function that takes statistic type and year as arguments and returns a pandas 
         for the next 60 seconds after 20 requests have been made
 
 '''
-def get_eligible_players(stat_type: str, season: int) -> pd.DataFrame:
+def get_eligible_players(stat_type: str, season: int, counter: int) -> pd.DataFrame:
+    # set global counter to accurately reflect passed counter
+    global REQUEST_COUNTER
+    REQUEST_COUNTER = counter
+
     # statistic type must be formatted properly
     if stat_type not in VALID_STATS:
         raise Exception('Invalid statistic type: "stat_type" arg must be passing, scrimmage, or kicking')
@@ -79,9 +84,9 @@ def get_eligible_players(stat_type: str, season: int) -> pd.DataFrame:
             # get player age
             age = int(table_rows[i].find('td', {'data-stat': 'age'}).text)
             # use player name, position, age, and season to get player id
-            playerID = get_player_id(name, position, age, season)
+            playerID = get_player_id(name, age, season)
             # add season to obtain season id
-            seasonID = playerID + str(season)
+            seasonID = playerID +  str(season)[-2:] #get last two digits of season
             #assign values to data dict
             data['seasonID'].append(seasonID)
             data['playerID'].append(playerID)
@@ -111,7 +116,11 @@ def get_soup(request_url: str) -> BeautifulSoup:
     global REQUEST_COUNTER
     # if request counter is already at 20, sleep program for sixty seconds
     if REQUEST_COUNTER >= 20:
-        time.sleep(60)
+        print("Maximum requests per minute reached, now sleeping program for sixty seconds.")
+        reset_request_counter() # reset request counting file
+        for i in range(60, 0, -1):
+            time.sleep(1)
+            print(i)
         REQUEST_COUNTER = 0
     # store response from request
     response = requests.get(request_url)
@@ -119,6 +128,16 @@ def get_soup(request_url: str) -> BeautifulSoup:
     REQUEST_COUNTER += 1
     # return soup
     return BeautifulSoup(response.text, 'html.parser')
+
+
+
+'''
+Reset the stored request counter to zero
+'''
+def reset_request_counter():
+    file = open("data_collection/utils/request_counter.txt", "w")
+    file.write("0")
+    file.close()
 
 
 
@@ -135,10 +154,10 @@ same player
         playerid (str): player-season unique identifier
 
 '''
-def get_player_id(name: str, position: str, age: int, season: int):
-    birth_year = season - age
+def get_player_id(name: str, age: int, season: int):
+    birth_year = abs(season - age) % 100  #get last two digits
     simple_name = name.replace("'", "").replace("-", "")
-    return (simple_name + position + str(birth_year)).replace(' ', '')
+    return (simple_name + str(birth_year)).replace(' ', '')
 
       
 
@@ -196,7 +215,7 @@ def get_eligible_positions(stat_type: str) -> list:
 
 
 def main():
-    print(get_eligible_players('scrimmage', 2023)[0].to_string())
+    print(get_eligible_players('kicking', 2023, 20)[0].to_string())
 
 
 
