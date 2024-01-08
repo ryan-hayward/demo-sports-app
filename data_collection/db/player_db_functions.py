@@ -1,4 +1,5 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text, ForeignKey, Column, String, Integer, Float
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import pandas as pd
 
@@ -12,31 +13,86 @@ engine = create_engine(connection_url, echo=True)
 import sys
 sys.path.append('./data_collection')
 import scripts.generic_game_log as game_log
+import scripts.eligible_players as eligible_players
+
+# Set up a base class
+Base = declarative_base()
 
 # Set up a sessionmaker orm queries and inserts
 Session = sessionmaker(bind=engine)
 
+
 '''
-Function accepts a player's game log for a given season and inserts/updates (upserts) the log into the database
-that is specified in the db_config.py file
+Constructor for eligible player objects to be inserted into the eligible_players database
 
-    Args:
-        game_log (Pandas Dataframe): a log of player games for a given season
-
-    Returns:
-        0 for successful upsert, -1 for failure
+    Attributes are identical to those in the pandas dataframe returned by eligible_players.get_eligible_players
+    season ID (str), playerID (str), name (str), position (str), age (int), season (int)
 '''
-def upsert_player_game_log(data: pd.DataFrame):
-    # establish a new connection to the database
-    with engine.connect() as conn:
-        data.to_sql('player_data', con=conn, if_exists='append', index=False)
-        conn.commit()
-    conn.close()
+class Eligible_Player(Base):
+    # specify target table name
+    __tablename__ = 'eligible_players'
+    
+    # create columns
+    seasonID = Column("seasonID", String, primary_key=True)
+    playerID = Column("playerID", String)
+    name = Column("name", String)
+    position = Column("position", String)
+    age = Column("age", Integer)
+    season = Column("season", Integer)
+
+    def __init__(self, player: tuple):
+        # set object attribute names to be the same as the dataframe columns
+        self.seasonID = player.seasonID
+        self.playerID = player.playerID
+        self.name = player.name
+        self.position = player.position
+        self.age = player.age
+        self.season = player.season
+    
+    def __repr__(self):
+        return f"{self.seasonID}, {self.name}, {self.position}, {self.age}, {self.season}"
 
 
+
+'''
+Method to update OR insert eligible players into the eligible players table.
+
+@TODO currently this is only insert; add insert/update functionality
+'''
+def upsert_eligible_players(data: pd.DataFrame):
+    session = Session()
+
+    for player in data.itertuples():
+        eligible_player = Eligible_Player(player)
+        session.add(eligible_player)
+
+    session.commit()
+    session.close_all()
+
+
+
+'''
+Drop contents of a table based on the model
+'''
+def drop_table(model):
+    session = Session()
+    session.query(model).delete()
+    session.commit()
+    session.close_all()
+
+
+
+'''
+Main Method
+
+@TODO add functionality for upsert to eligible players. Build out the game log class. Add functionality to delete
+specific lines of data from each table
+'''
 def main():
-    df = game_log.get_player_game_log("Josh Allen", "QB", 2018)
-    upsert_player_game_log(df)
+    df = eligible_players.get_eligible_players("passing", 2012)[0]
+    upsert_eligible_players(df)
+    # drop_table(Eligible_Player)
+
 
 
 if __name__ == '__main__':

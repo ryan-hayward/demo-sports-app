@@ -5,7 +5,7 @@ import time
 
 VALID_POSITIONS = ['QB', 'RB', 'FB', 'WR', 'TE', 'K']
 REQUEST_COUNTER = 0
-ELEMENT_TABLE = pd.read_csv('data_collection/data/field_player_mapping.csv')
+ELEMENT_TABLE = pd.read_csv('data_collection/data/metadata/field_player_mapping.csv')
 
 '''
 @NOTE: ENHANCEMENT of player_game_log.py, written by Michael Kim
@@ -226,7 +226,7 @@ def kicker_game_log(soup: BeautifulSoup):
 
 def main():
     df = get_player_game_log('Anthony Fasano', 'TE', 2010)
-    df.to_csv('src/python/data/test_data.csv', sep='\t', index=False)
+    df.to_csv('data_collection/data/test/test_data.csv', sep='\t', index=False)
 
 if __name__ == '__main__':
     main()

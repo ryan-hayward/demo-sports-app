@@ -18,7 +18,7 @@ A function that takes statistic type and year as arguments and returns a pandas 
         year (int): year in which the statistics were accumulated
 
     Returns:
-        pandas.Dataframe with the following attributes: playerID (str), name (str), position (str), 
+        pandas.Dataframe with the following attributes: season ID (str), playerID (str), name (str), position (str), 
         age (int), season (int)
         counter (int): number of times that PFR has been scraped within the minute. Will reset and pause
         for the next 60 seconds after 20 requests have been made
@@ -39,7 +39,8 @@ def get_eligible_players(stat_type: str, season: int) -> pd.DataFrame:
 
     # set the base structure for the return data frame
     data = {
-        'playerID': [],
+        'seasonID': [], #PRIMARY KEY
+        'playerID': [], #PRIMARY PLAYER IDENTIFIER (used to join)
         'name': [],
         'position': [],
         'age': [],
@@ -71,14 +72,22 @@ def get_eligible_players(stat_type: str, season: int) -> pd.DataFrame:
             continue
         else:
             # get player name and strip irrelevant characters
-            name = (table_rows[i].find('td', {'data-stat': 'player'}).text).replace('*', '').replace('+', '')
-            # use player name, position, and season to get player id
-            playerID = get_player_id(name, position, season)
+            name = table_rows[i].find('td', {'data-stat': 'player'}).text.replace(
+                '*', '').replace(
+                '+', '').replace(
+                '.', '')
+            # get player age
+            age = int(table_rows[i].find('td', {'data-stat': 'age'}).text)
+            # use player name, position, age, and season to get player id
+            playerID = get_player_id(name, position, age, season)
+            # add season to obtain season id
+            seasonID = playerID + str(season)
             #assign values to data dict
+            data['seasonID'].append(seasonID)
             data['playerID'].append(playerID)
             data['name'].append(name)
             data['position'].append(position)
-            data['age'].append(int(table_rows[i].find('td', {'data-stat': 'age'}).text))
+            data['age'].append(age)
             data['season'].append(season)
     # return data frame
     return [pd.DataFrame(data=data), REQUEST_COUNTER]
@@ -125,10 +134,11 @@ same player
     Returns:
         playerid (str): player-season unique identifier
 
-    @TODO come back and create a better unique ID
 '''
-def get_player_id(name: str, position: str, season: int):
-    return (name + position + str(season)).replace(' ', '')
+def get_player_id(name: str, position: str, age: int, season: int):
+    birth_year = season - age
+    simple_name = name.replace("'", "").replace("-", "")
+    return (simple_name + position + str(birth_year)).replace(' ', '')
 
       
 
@@ -186,7 +196,7 @@ def get_eligible_positions(stat_type: str) -> list:
 
 
 def main():
-    print(get_eligible_players('scrimmage', 2014)[0].to_string())
+    print(get_eligible_players('scrimmage', 2023)[0].to_string())
 
 
 
