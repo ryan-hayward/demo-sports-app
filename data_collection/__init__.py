@@ -3,4 +3,4 @@ import scripts.eligible_players
 import scripts.generic_game_log
 
 # load db modules
-import db.player_db_functions
+import data_collection.db.players.functions

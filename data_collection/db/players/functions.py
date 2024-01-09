@@ -1,19 +1,19 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
-from player_db_models import Eligible_Player
+from models import Eligible_Player, Player, get_base
 import pandas as pd
 
+# add parent directory to sys.path and import packages from sibling modules
+import sys
+sys.path.append('./data_collection')
+from db.db_config import config
+import scripts.generic_game_log as game_log
+import scripts.eligible_players as eligible_players
+
 # Set up the engine, which provides access to the DB
-from db_config import config
 params = config()
 connection_url = 'postgresql://%s:%s@%s/%s' % (params['user'], params['password'], params['host'], params['database'])
 engine = create_engine(connection_url, echo=True)
-
-# add parent directory to sys.path and import package from sibling module
-import sys
-sys.path.append('./data_collection')
-import scripts.generic_game_log as game_log
-import scripts.eligible_players as eligible_players
 
 # Set up a sessionmaker orm queries and inserts
 Session = sessionmaker(bind=engine)
@@ -34,7 +34,10 @@ Function to insert a set of new eligible players into thee eligible_players tabl
         N/A; function inserts players into the appropriate db table using a session
         @TODO add error handling and tracking as a return
 '''
-def insert_eligible_players(data: pd.DataFrame):
+def upsert_eligible_players(data: pd.DataFrame):
+    # ensure that target table exists
+    get_base().metadata.create_all(bind=engine)
+
     # open session
     session = Session()
 
@@ -44,9 +47,12 @@ def insert_eligible_players(data: pd.DataFrame):
         pk = player.seasonID
         existing_player = session.query(Eligible_Player).filter_by(seasonID=pk).first()
         # if new primary key, insert into table
-        if not existing_player:
-            eligible_player = Eligible_Player(player)
-            session.add(eligible_player)
+        if existing_player:
+            # drop player if they exist in the databasee
+            session.delete(existing_player)
+        # add new player data
+        eligible_player = Eligible_Player(player)
+        session.add(eligible_player)
 
     # commit changes & close session
     session.commit()
@@ -67,7 +73,7 @@ a defined stretch of time
         into the database on a yearly basis.
         @TODO add error handling/tracking as the return
 '''
-def insert_all_eligible_players(start_year: int, end_year: int):
+def upsert_all_eligible_players(start_year: int, end_year: int):
     # set request tracking file to zero
     prepare_request_file()
     
@@ -75,16 +81,63 @@ def insert_all_eligible_players(start_year: int, end_year: int):
     for i in range (start_year, end_year + 1):
         # get eligible QBs
         passers = eligible_players.get_eligible_players("passing", i, REQUEST_COUNTER)
-        insert_eligible_players(passers[0]) # pass data frame to be inserted into database
+        upsert_eligible_players(passers[0]) # pass data frame to be inserted into database
         increment_request_counter(passers[1]) # increment request counter
         # get eligible FLEXs
         field_players = eligible_players.get_eligible_players("scrimmage", i, REQUEST_COUNTER)
-        insert_eligible_players(field_players[0]) # pass data frame to be inserted into database
+        upsert_eligible_players(field_players[0]) # pass data frame to be inserted into database
         increment_request_counter(field_players[1]) # increment request counter
         # get eligible Ks
         kickers = eligible_players.get_eligible_players("kicking", i, REQUEST_COUNTER)
-        insert_eligible_players(kickers[0]) # pass data frame to be inserted into database
+        upsert_eligible_players(kickers[0]) # pass data frame to be inserted into database
         increment_request_counter(kickers[1])  # increment request counter
+
+
+
+
+'''
+Deletes all player records within a given time frame
+'''
+def delete_all_eligible_players(start_year: int, end_year: int):
+    session = Session()
+    # drop all records given the start and end year
+    for i in range(start_year, end_year + 1):
+        session.query(Eligible_Player).where(Eligible_Player.season==i).delete()
+
+    session.commit()
+    session.close()
+
+
+
+##### PLAYER TABLE MODIFICATIONS
+'''
+@TODO add error handling for inserts, or essentially just do an upsert like above
+'''
+def upsert_unique_players():
+    # ensure that target table exists
+    get_base().metadata.create_all(bind=engine)
+
+    # no need to prepare request file since this is done internally, just open session
+    session = Session()
+    
+    # query for unique player names
+    for value in session.query(Eligible_Player.playerID).distinct():
+        # get player ID
+        playerID = value._mapping['playerID']
+        # find player for each player ID
+        player_record = session.query(Eligible_Player).filter_by(playerID=playerID).first()
+        # get birth year
+        birth_year = playerID[-2:]
+        # get first and last name
+        name = player_record.name.split(' ')
+        first_name = name[0]
+        last_name = name[1]
+        # create player object
+        player = Player(playerID, birth_year, first_name, last_name)
+        session.add(player)
+
+    session.commit()
+    session.close()
 
 
 
@@ -140,6 +193,18 @@ def drop_table(model):
     session.close_all()
 
 
+'''
+Not currently used but may be used by the drop model method in the future
+'''
+def table_exists(table):
+    # check for the existence of the table
+    inspector = inspect(engine)
+    if table in inspector.get_table_names():
+        return True
+    else:
+        return False
+    
+
 
 ##### MAIN #####
 
@@ -150,8 +215,12 @@ Main Method
 specific lines of data from each table
 '''
 def main():
-    # insert_all_eligible_players()
-    print("Do testing here")
+    # upsert_all_eligible_players(2020, 2023)
+    # df = eligible_players.get_eligible_players("passing", 2023, REQUEST_COUNTER)[0]
+    # upsert_eligible_players(df)
+    # delete_all_eligible_players(2020, 2023)
+    # drop_table(Player)
+    upsert_unique_players()
 
 
 

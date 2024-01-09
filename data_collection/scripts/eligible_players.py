@@ -155,9 +155,9 @@ same player
 
 '''
 def get_player_id(name: str, age: int, season: int):
-    birth_year = abs(season - age) % 100  #get last two digits
+    birth_year = str(season - age)[-2:] #get last two digits
     simple_name = name.replace("'", "").replace("-", "")
-    return (simple_name + str(birth_year)).replace(' ', '')
+    return (simple_name + birth_year).replace(' ', '')
 
       
 
@@ -215,7 +215,7 @@ def get_eligible_positions(stat_type: str) -> list:
 
 
 def main():
-    print(get_eligible_players('kicking', 2023, 20)[0].to_string())
+    print(get_eligible_players('passing', 2023, 0)[0].to_string())
 
 
 
