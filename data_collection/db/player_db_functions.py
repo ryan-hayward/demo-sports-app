@@ -1,6 +1,6 @@
-from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, Float
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from player_db_models import Eligible_Player
 import pandas as pd
 
 # Set up the engine, which provides access to the DB
@@ -15,48 +15,24 @@ sys.path.append('./data_collection')
 import scripts.generic_game_log as game_log
 import scripts.eligible_players as eligible_players
 
-# Set up a base class
-Base = declarative_base()
 # Set up a sessionmaker orm queries and inserts
 Session = sessionmaker(bind=engine)
 # Set up a counter to keep track of requests to web pages
 REQUEST_COUNTER = 0
 
 
-'''
-Constructor for eligible player objects to be inserted into the eligible_players database
-
-    Attributes are identical to those in the pandas dataframe returned by eligible_players.get_eligible_players
-    season ID (str), playerID (str), name (str), position (str), age (int), season (int)
-'''
-class Eligible_Player(Base):
-    # specify target table name
-    __tablename__ = 'eligible_players'
-    
-    # create columns
-    seasonID = Column("seasonID", String, unique=True, primary_key=True)
-    playerID = Column("playerID", String)
-    name = Column("name", String)
-    position = Column("position", String)
-    age = Column("age", Integer)
-    season = Column("season", Integer)
-
-    def __init__(self, player: tuple):
-        # set object attribute names to be the same as the dataframe columns
-        self.seasonID = player.seasonID
-        self.playerID = player.playerID
-        self.name = player.name
-        self.position = player.position
-        self.age = player.age
-        self.season = player.season
-    
-    def __repr__(self):
-        return f"{self.seasonID}, {self.name}, {self.position}, {self.age}, {self.season}"
-
-
+##### ELIGIBLE PLAYER TABLE MODIFICATIONS #####
 
 '''
-Method to insert new eligible players into the eligible players table.
+Function to insert a set of new eligible players into thee eligible_players table
+
+    Params:
+        data (pd.df): dataframe of eligible stat accumulators for a given season as defined in
+        scripts/eligible_players.py
+
+    Returns:
+        N/A; function inserts players into the appropriate db table using a session
+        @TODO add error handling and tracking as a return
 '''
 def insert_eligible_players(data: pd.DataFrame):
     # open session
@@ -79,23 +55,24 @@ def insert_eligible_players(data: pd.DataFrame):
 
 
 '''
-Drop contents of a table based on the model
-'''
-def drop_table(model):
-    session = Session()
-    session.query(model).delete()
-    session.commit()
-    session.close_all()
+Function that inserts all eligible QBs, RBs, FBs, WRs, TEs, and Ks into the eligible_players database over
+a defined stretch of time
 
-
+    Params:
+        start_year (int): year to start looking for stat accumulators
+        end_year (int): year to end looking for stat accumulators
+    
+    Returns:
+        N/A; function uses insert_eligible_players to insert passers, scrimmage yard accumulators, and kickers
+        into the database on a yearly basis.
+        @TODO add error handling/tracking as the return
 '''
-Method to insert all eligible players
-'''
-def insert_all_eligible_players():
+def insert_all_eligible_players(start_year: int, end_year: int):
+    # set request tracking file to zero
     prepare_request_file()
     
-    # get all player data between 2000-2023
-    for i in range (2000, 2024):
+    # get all player data between start and end year (end year inclusive)
+    for i in range (start_year, end_year + 1):
         # get eligible QBs
         passers = eligible_players.get_eligible_players("passing", i, REQUEST_COUNTER)
         insert_eligible_players(passers[0]) # pass data frame to be inserted into database
@@ -111,6 +88,12 @@ def insert_all_eligible_players():
 
 
 
+##### REQUEST TRACKING HELPER FUNCTIONS #####
+
+'''
+Function to increment the request counter (stored in a text file) by the amount of requests as received from
+any script. Necessary to prevent sending too many requests to a given host, which could result in suspension.
+'''
 def increment_request_counter(request_count: int):
     # load in the global request counter
     global REQUEST_COUNTER 
@@ -126,11 +109,39 @@ def increment_request_counter(request_count: int):
     write_file.close()
 
 
-
+'''
+Function wipes any pre-existing value out of the request tracking file, setting the file equal to zero.
+Called prior to running any insert_all() type script to ensure that the base request amount is set to zero.
+'''
 def prepare_request_file():
     file = open('data_collection/utils/request_counter.txt', 'w')
     file.write("0")
     file.close()
+
+
+
+##### DATABASE UTILITY FUNCTIONS #####
+    
+'''
+Drop contents of a given table
+
+    Params:
+        model: name of model (as specified in player_db_models). Models correspond 1-to-1 with
+        db tables, so equivalent of passing a db name, essentially.
+    
+    Returns:
+        N/A; simply opens a session, drops the appropriate table, and closes the session
+        @TODO add error tracking/handling in return
+'''
+def drop_table(model):
+    session = Session()
+    session.query(model).delete()
+    session.commit()
+    session.close_all()
+
+
+
+##### MAIN #####
 
 '''
 Main Method
@@ -139,10 +150,8 @@ Main Method
 specific lines of data from each table
 '''
 def main():
-    # df = eligible_players.get_eligible_players("passing", 2012)[0]
-    # insert_eligible_players(df)
-    # drop_table(Eligible_Player)
-    insert_all_eligible_players()
+    # insert_all_eligible_players()
+    print("Do testing here")
 
 
 
