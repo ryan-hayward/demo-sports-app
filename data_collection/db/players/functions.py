@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import exists
 from models import Eligible_Player, Player, get_base
 import pandas as pd
 
@@ -7,8 +8,8 @@ import pandas as pd
 import sys
 sys.path.append('./data_collection')
 from db.db_config import config
-import scripts.generic_game_log as game_log
-import scripts.eligible_players as eligible_players
+import scripts.get_game_logs as game_log
+import scripts.get_eligible_players as get_eligible_players
 
 # Set up the engine, which provides access to the DB
 params = config()
@@ -46,16 +47,19 @@ def upsert_eligible_players(data: pd.DataFrame):
         # check if primary key exists already in db
         pk = player.seasonID
         existing_player = session.query(Eligible_Player).filter_by(seasonID=pk).first()
+        print(existing_player.playerID)
         # if new primary key, insert into table
-        if existing_player:
-            # drop player if they exist in the databasee
-            session.delete(existing_player)
+        #if existing_player:
+            #print("GETTING HERE")
+            # drop player if they exist in the database
+            #session.query(Player).delete(existing_player)
+            #session.commit()
         # add new player data
-        eligible_player = Eligible_Player(player)
-        session.add(eligible_player)
+        #eligible_player = Eligible_Player(player)
+        #session.add(eligible_player)
+        #session.commit()
 
     # commit changes & close session
-    session.commit()
     session.close_all()
 
 
@@ -80,18 +84,33 @@ def upsert_all_eligible_players(start_year: int, end_year: int):
     # get all player data between start and end year (end year inclusive)
     for i in range (start_year, end_year + 1):
         # get eligible QBs
-        passers = eligible_players.get_eligible_players("passing", i, REQUEST_COUNTER)
+        passers = get_eligible_players.get_eligible_players("passing", i, REQUEST_COUNTER)
         upsert_eligible_players(passers[0]) # pass data frame to be inserted into database
         increment_request_counter(passers[1]) # increment request counter
         # get eligible FLEXs
-        field_players = eligible_players.get_eligible_players("scrimmage", i, REQUEST_COUNTER)
+        field_players = get_eligible_players.get_eligible_players("scrimmage", i, REQUEST_COUNTER)
         upsert_eligible_players(field_players[0]) # pass data frame to be inserted into database
         increment_request_counter(field_players[1]) # increment request counter
         # get eligible Ks
-        kickers = eligible_players.get_eligible_players("kicking", i, REQUEST_COUNTER)
+        kickers = get_eligible_players.get_eligible_players("kicking", i, REQUEST_COUNTER)
         upsert_eligible_players(kickers[0]) # pass data frame to be inserted into database
         increment_request_counter(kickers[1])  # increment request counter
 
+
+
+'''
+Deletes a specified player's records in a given time frame
+@ TODO clean up the query code, make sure it works when connected to wifi
+'''
+def delete_eligible_player(playerID: str, start_year: int, end_year: int):
+    session = Session()
+    # drop all records related to a certain player given the start and end year
+    for i in range(start_year, end_year + 1):
+        session.query(Eligible_Player).where(
+            Eligible_Player.playerID==playerID and Eligible_Player.season==i).delete()
+    
+    session.commit()
+    session.close()
 
 
 
@@ -111,30 +130,38 @@ def delete_all_eligible_players(start_year: int, end_year: int):
 
 ##### PLAYER TABLE MODIFICATIONS
 '''
-@TODO add error handling for inserts, or essentially just do an upsert like above
+Upserts unique player biographical information into the player_bios table based on the appearance
+of unique playerIDs in the Eligible Players table
 '''
-def upsert_unique_players():
+def upsert_player_bios():
     # ensure that target table exists
     get_base().metadata.create_all(bind=engine)
 
     # no need to prepare request file since this is done internally, just open session
     session = Session()
-    
-    # query for unique player names
-    for value in session.query(Eligible_Player.playerID).distinct():
-        # get player ID
-        playerID = value._mapping['playerID']
+
+    for player in session.query(Eligible_Player.playerID).distinct():
+        # get player unique id
+        player_id = player._mapping['playerID']
         # find player for each player ID
-        player_record = session.query(Eligible_Player).filter_by(playerID=playerID).first()
+        player_record = session.query(Eligible_Player).filter_by(playerID=player_id).first()
         # get birth year
-        birth_year = playerID[-2:]
+        birth_year = player_id[-2:]
         # get first and last name
         name = player_record.name.split(' ')
         first_name = name[0]
         last_name = name[1]
         # create player object
-        player = Player(playerID, birth_year, first_name, last_name)
-        session.add(player)
+        player = Player(player_id, birth_year, first_name, last_name)
+        # if player already exists in player bios, update. Else, add
+        if session.query(Player).filter_by(playerID=player_id):
+            session.query(Player).filter_by(playerID=player_id).update({
+                'birth_year': birth_year,
+                'first_name': first_name,
+                'last_name': last_name
+            })
+        else:
+            session.add(player)
 
     session.commit()
     session.close()
@@ -220,7 +247,7 @@ def main():
     # upsert_eligible_players(df)
     # delete_all_eligible_players(2020, 2023)
     # drop_table(Player)
-    upsert_unique_players()
+    upsert_player_bios()
 
 
 
