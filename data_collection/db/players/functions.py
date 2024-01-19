@@ -33,33 +33,39 @@ Function to insert a set of new eligible players into thee eligible_players tabl
 
     Returns:
         N/A; function inserts players into the appropriate db table using a session
-        @TODO add error handling and tracking as a return
 '''
 def upsert_eligible_players(data: pd.DataFrame):
     # ensure that target table exists
-    get_base().metadata.create_all(bind=engine)
+    create_all_tables()
+
+    # set request tracking file to zero
+    prepare_request_file()
 
     # open session
     session = Session()
 
     # iterate through eligible player df
     for player in data.itertuples():
-        # check if primary key exists already in db
-        pk = player.seasonID
-        existing_player = session.query(Eligible_Player).filter_by(seasonID=pk).first()
-        print(existing_player.playerID)
-        # if new primary key, insert into table
-        #if existing_player:
-            #print("GETTING HERE")
-            # drop player if they exist in the database
-            #session.query(Player).delete(existing_player)
-            #session.commit()
-        # add new player data
-        #eligible_player = Eligible_Player(player)
-        #session.add(eligible_player)
-        #session.commit()
+        # get unique id (seasonID)
+        season_id = player.seasonID
+        # check if record exists
+        exists = session.query(Eligible_Player).filter_by(seasonID=season_id).first() is not None
+        # if it does, update
+        if exists:
+            session.query(Eligible_Player).filter_by(seasonID=season_id).update({
+                'playerID': player.playerID,
+                'name': player.name,
+                'position': player.position,
+                'age': player.age,
+                'season': player.season
+            })
+        # if not, add playerr
+        else:
+            new_player = Eligible_Player(player)
+            session.add(new_player)
 
     # commit changes & close session
+    session.commit()
     session.close_all()
 
 
@@ -78,6 +84,9 @@ a defined stretch of time
         @TODO add error handling/tracking as the return
 '''
 def upsert_all_eligible_players(start_year: int, end_year: int):
+    # ensure that target table exists
+    create_all_tables()
+
     # set request tracking file to zero
     prepare_request_file()
     
@@ -100,14 +109,15 @@ def upsert_all_eligible_players(start_year: int, end_year: int):
 
 '''
 Deletes a specified player's records in a given time frame
-@ TODO clean up the query code, make sure it works when connected to wifi
 '''
 def delete_eligible_player(playerID: str, start_year: int, end_year: int):
     session = Session()
     # drop all records related to a certain player given the start and end year
     for i in range(start_year, end_year + 1):
-        session.query(Eligible_Player).where(
-            Eligible_Player.playerID==playerID and Eligible_Player.season==i).delete()
+        session.query(Eligible_Player).filter(
+            Eligible_Player.playerID==playerID).filter(
+            Eligible_Player.season==i).delete()
+        print("Deleted record " + str(playerID) + ' ' + str(i))
     
     session.commit()
     session.close()
@@ -128,7 +138,7 @@ def delete_all_eligible_players(start_year: int, end_year: int):
 
 
 
-##### PLAYER TABLE MODIFICATIONS
+##### PLAYER BIO TABLE MODIFICATIONS
 '''
 Upserts unique player biographical information into the player_bios table based on the appearance
 of unique playerIDs in the Eligible Players table
@@ -168,6 +178,19 @@ def upsert_player_bios():
 
 
 
+'''
+Given a list of player ids, delete records in the player bios database
+'''
+def delete_player_bios(player_list: list):
+    session = Session()
+
+    for player in list:
+        session.query(Player).filter_by(playerID=player).delete()
+    
+    print('player removal complete.')
+
+
+
 ##### REQUEST TRACKING HELPER FUNCTIONS #####
 
 '''
@@ -201,7 +224,14 @@ def prepare_request_file():
 
 
 ##### DATABASE UTILITY FUNCTIONS #####
-    
+'''
+Ensure all tables have been set up
+'''
+def create_all_tables():
+    get_base().metadata.create_all(bind=engine)
+
+
+
 '''
 Drop contents of a given table
 
@@ -243,12 +273,12 @@ specific lines of data from each table
 '''
 def main():
     # upsert_all_eligible_players(2020, 2023)
-    # df = eligible_players.get_eligible_players("passing", 2023, REQUEST_COUNTER)[0]
-    # upsert_eligible_players(df)
+    df = get_eligible_players.get_eligible_players("passing", 2023, REQUEST_COUNTER)[0]
+    upsert_eligible_players(df)
     # delete_all_eligible_players(2020, 2023)
     # drop_table(Player)
-    upsert_player_bios()
-
+    # upsert_player_bios()
+    # delete_eligible_player('DeshaunWatson95', 2022, 2023)
 
 
 if __name__ == '__main__':
