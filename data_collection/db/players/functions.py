@@ -324,7 +324,7 @@ def main():
     # df = get_eligible_players.get_eligible_players("passing", 2023, REQUEST_COUNTER)[0]
     # upsert_eligible_players(df)
     # df = get_game_urls.get_games(2023)[0]
-    upsert_all_game_urls(1970, 1971)
+    upsert_all_game_urls(1981, 1990)
 
 
 if __name__ == '__main__':
