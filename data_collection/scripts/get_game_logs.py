@@ -93,7 +93,11 @@ def get_soup(request_url: str) -> BeautifulSoup:
     global REQUEST_COUNTER
     # if request counter is already at 20, sleep program for sixty seconds
     if REQUEST_COUNTER >= 20:
-        time.sleep(60)
+        print("Maximum requests per minute reached, now sleeping program for sixty seconds.")
+        reset_request_counter() # reset request counting file
+        for i in range(60, 0, -1):
+            time.sleep(1)
+            print(i)
         REQUEST_COUNTER = 0
     # store response from request
     response = requests.get(request_url)
@@ -101,6 +105,16 @@ def get_soup(request_url: str) -> BeautifulSoup:
     REQUEST_COUNTER += 1
     # return soup
     return BeautifulSoup(response.text, 'html.parser')
+
+
+
+'''
+Reset the stored request counter to zero
+'''
+def reset_request_counter():
+    file = open("data_collection/utils/request_counter.txt", "w")
+    file.write("0")
+    file.close()
 
 
 

@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import exists
-from models import Eligible_Player, Player, get_base
+from models import Eligible_Player, Player, Game_Link, get_base
 import pandas as pd
 
 # add parent directory to sys.path and import packages from sibling modules
@@ -10,6 +10,7 @@ sys.path.append('./data_collection')
 from db.db_config import config
 import scripts.get_game_logs as game_log
 import scripts.get_eligible_players as get_eligible_players
+import scripts.get_game_urls as get_game_urls
 
 # Set up the engine, which provides access to the DB
 params = config()
@@ -145,7 +146,7 @@ of unique playerIDs in the Eligible Players table
 '''
 def upsert_player_bios():
     # ensure that target table exists
-    get_base().metadata.create_all(bind=engine)
+    create_all_tables()
 
     # no need to prepare request file since this is done internally, just open session
     session = Session()
@@ -188,6 +189,53 @@ def delete_player_bios(player_list: list):
         session.query(Player).filter_by(playerID=player).delete()
     
     print('player removal complete.')
+
+
+
+##### GAME URL TABLE MODIFICATIONS
+def upsert_game_urls(data: pd.DataFrame):
+    # ensure that target table exists
+    create_all_tables()
+    # set request tracking file to zero
+    prepare_request_file()
+    # create session
+    session = Session()
+
+    # iterate through game link df
+    for game_link in data.itertuples():
+        # check if record exists
+        exists = session.query(Game_Link).filter_by(link=game_link.link).first() is not None
+        # if it does, update
+        if exists:
+            session.query(Game_Link).filter_by(link=game_link.link).update({
+                'season': game_link.season,
+                'week': game_link.week,
+                'link': game_link.link
+            })
+        # if not, add playerr
+        else:
+            new_game_link = Game_Link(game_link)
+            session.add(new_game_link)
+
+    # commit changes & close session
+    session.commit()
+    session.close_all()
+
+
+
+def upsert_all_game_urls(start_year: int, end_year: int):
+    # ensure that target table exists
+    create_all_tables()
+
+    # set request tracking file to zero
+    prepare_request_file()
+    
+    # get all player data between start and end year (end year inclusive)
+    for i in range (start_year, end_year + 1):
+        # get eligible QBs
+        game_urls = get_game_urls.get_games(i, REQUEST_COUNTER)
+        upsert_game_urls(game_urls[0]) # pass data frame to be inserted into database
+        increment_request_counter(game_urls[1]) # increment request counter
 
 
 
@@ -273,12 +321,10 @@ specific lines of data from each table
 '''
 def main():
     # upsert_all_eligible_players(2020, 2023)
-    df = get_eligible_players.get_eligible_players("passing", 2023, REQUEST_COUNTER)[0]
-    upsert_eligible_players(df)
-    # delete_all_eligible_players(2020, 2023)
-    # drop_table(Player)
-    # upsert_player_bios()
-    # delete_eligible_player('DeshaunWatson95', 2022, 2023)
+    # df = get_eligible_players.get_eligible_players("passing", 2023, REQUEST_COUNTER)[0]
+    # upsert_eligible_players(df)
+    # df = get_game_urls.get_games(2023)[0]
+    upsert_all_game_urls(1970, 1971)
 
 
 if __name__ == '__main__':

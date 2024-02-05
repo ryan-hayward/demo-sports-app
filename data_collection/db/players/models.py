@@ -329,6 +329,26 @@ class Game_Log(Base):
 
 
 '''
+Table of all game links
+'''
+class Game_Link(Base):
+    # target table
+    __tablename__ = 'game_links'
+    season = Column("season", Integer)
+    week = Column("week", Integer)
+    link = Column("game_link", String, primary_key=True)
+
+    def __init__(self, game_link: tuple):
+        self.season = game_link.season
+        self.week = game_link.week
+        self.link = game_link.link
+
+    def __repr__(self):
+        return f"{self.season}, {self.week}, {self.link}"
+
+
+
+'''
 utility function to pass declarative base to functions.py
 '''
 def get_base():
