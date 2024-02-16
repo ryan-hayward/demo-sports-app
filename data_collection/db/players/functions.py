@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, inspect, Column, String
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
-from models import Eligible_Player, Player, Game_Link, get_base
+from models import Eligible_Player, Player, Game_Link, get_base, Game
 import pandas as pd
 
 # add parent directory to sys.path and import packages from sibling modules
@@ -21,6 +21,24 @@ engine = create_engine(connection_url, echo=True)
 Session = sessionmaker(bind=engine)
 # Set up a counter to keep track of requests to web pages
 REQUEST_COUNTER = 0
+
+
+##### GENERAL GAME INFORMATION TABLE MODIFICATIONS #####
+def upsert_game_information(season: int, week: int):
+    # ensure that target table exists
+    create_all_tables()
+    # set request tracking file to zero
+    prepare_request_file()
+    # create session
+    session = Session()
+    # get target game links
+    tgt_games = session.query(Game_Link).filter_by(season=season, week=week)
+    # store game links and ids
+    game_links, game_ids = [], []
+    for game in tgt_games:
+        game_links.append(game.link)
+        game_ids.append(game.game_id)
+
 
 
 ##### ELIGIBLE PLAYER TABLE MODIFICATIONS #####
@@ -311,7 +329,7 @@ def drop_table(model):
     session = Session()
     session.query(model).delete()
     session.commit()
-    session.close_all()
+    session.close()
 
 
 '''
@@ -342,7 +360,7 @@ def main():
     # upsert_eligible_players(df)
     # df = get_game_urls.get_games(2023)[0]
     # upsert_all_game_urls(2006, 2023)
-    pass
+    upsert_game_information(2023, 1)
 
 
 if __name__ == '__main__':

@@ -121,17 +121,24 @@ class Game(Base):
     __tablename__ = 'games'
 
     # general information
-    gameID = Column('gameID', String, primary_key=True)
+    gameID = Column(String, ForeignKey("game_links.game_id"), primary_key=True)
     date = Column('date', Date)
     playoff = Column('playoff', Boolean)
     home_team = Column('home_team', String)
     away_team = Column('away_team', String)
     home_coach = Column('home_coach', String)
     away_coach = Column('away_coach', String)
-    home_score = Column('home_score', Integer)
-    away_team = Column('away_score', Integer)
     stadium = Column('stadium', String)
     attendance = Column('attendance', Integer)
+    # point scoring information
+    h1q_pts = Column('h1q_pts', Integer)
+    h2q_pts = Column('h2q_pts', Integer)
+    h3q_pts = Column('h3q_pts', Integer)
+    h4q_pts = Column('h4q_pts', Integer)
+    a1q_pts = Column('a1q_pts', Integer)
+    a2q_pts = Column('a2q_pts', Integer)
+    a3q_pts = Column('a3q_pts', Integer)
+    a4q_pts = Column('a4q_pts', Integer)
     # gambling information
     toss_winner = Column('toss_winner', String)
     favored_team = Column('favored_team', String)
@@ -176,61 +183,68 @@ class Game(Base):
     away_fourth_down_att = Column('away_fourth_down_att', Integer)
     away_top = Column('away_top', Time)
 
-    def __init__(self, game: tuple):
-        self.gameID = game.gameID
-        self.date = game.date
-        self.playoff = game.playoff
-        self.home_team = game.home_team
-        self.away_team = game.away_team
-        self.home_coach = game.home_coach
-        self.away_coach = game.away_coach
-        self.home_score = game.home_score
-        self.away_team = game.away_team
-        self.stadium = game.stadium
-        self.attendance = game.attendance
+    def __init__(self, game: dict):
+        self.gameID = game["gameID"]
+        self.date = game["date"]
+        self.playoff = game["playoff"]
+        self.home_team = game["home_team"]
+        self.away_team = game["away_team"]
+        self.home_coach = game["home_coach"]
+        self.away_coach = game["away_coach"]
+        self.stadium = game["stadium"]
+        self.attendance = game["attendance"]
+        # scoring information
+        self.h1q_pts = game["h1q_pts"]
+        self.h2q_pts = game["h2q_pts"]
+        self.h3q_pts = game["h3q_pts"]
+        self.h4q_pts = game["h4q_pts"]
+        self.a1q_pts = game["a1q_pts"]
+        self.a2q_pts = game["a2q_pts"]
+        self.a3q_pts = game["a3q_pts"]
+        self.a4q_pts = game["a4q_pts"]
         # gambling information
-        self.toss_winner = game.toss_winner
-        self.favored_team = game.favored_team
-        self.favored_by = game.favored_by
-        self.over_under = game.over_under
-        self.head_ref = game.head_ref
-        self.scorigami = game.scorigami
+        self.toss_winner = game["toss_winner"]
+        self.favored_team = game["favored_team"]
+        self.favored_by = game["favored_by"]
+        self.over_under = game["over_under"]
+        self.head_ref = game["head_ref"]
+        self.scorigami = game["scorigami"]
         # logistical information
-        self.start_time_et = game.start_time_et
-        self.week = game.week
-        self.day_of_week = game.day_of_week
-        self.rest_days = game.rest_days
-        self.miles_traveled = game.miles_traveled 
-        self.temp_f = game.temp_f
-        self.wind_chill_f = game.wind_chill_f
-        self.humidity = game.humidity
-        self.wind_speed = game.wind_speed
+        self.start_time_et = game["start_time_et"]
+        self.week = game["week"]
+        self.day_of_week = game["day_of_week"]
+        self.rest_days = game["rest_days"]
+        self.miles_traveled = game["miles_traveled"]
+        self.temp_f = game["temp_f"]
+        self.wind_chill_f = game["wind_chill_f"]
+        self.humidity = game["humidity"]
+        self.wind_speed = game["wind_speed"]
         # home statistical information
-        self.home_yds = game.home_yds
-        self.home_pass_yds = game.home_pass_yds
-        self.home_rush_yds = game.home_rush_yds
-        self.home_fds = game.home_fds
-        self.home_tos = game.home_tos
-        self.home_penalties = game.home_penalties
-        self.home_penalty_yds = game.home_penalty_yds
-        self.home_third_down_conv = game.home_third_down_conv
-        self.home_third_down_att = game.home_third_down_att
-        self.home_fourth_down_conv = game.home_fourth_down_conv
-        self.home_fourth_down_att = game.home_fourth_down_att
-        self.home_top = game.home_top
+        self.home_yds = game["home_yds"]
+        self.home_pass_yds = game["home_pass_yds"]
+        self.home_rush_yds = game["home_rush_yds"]
+        self.home_fds = game["home_fds"]
+        self.home_tos = game["home_tos"]
+        self.home_penalties = game["home_penalties"]
+        self.home_penalty_yds = game["home_penalty_yds"]
+        self.home_third_down_conv = game["home_third_down_conv"]
+        self.home_third_down_att = game["home_third_down_att"]
+        self.home_fourth_down_conv = game["home_fourth_down_conv"]
+        self.home_fourth_down_att = game["home_fourth_down_att"]
+        self.home_top = game["home_top"]
         # away statistical information
-        self.away_yds = game.away_yds
-        self.away_pass_yds = game.away_pass_yds
-        self.away_rush_yds = game.away_rush_yds
-        self.away_fds = game.away_fds
-        self.away_tos = game.away_tos
-        self.away_penalties = game.away_penalties
-        self.away_penalty_yds = game.away_penalty_yds
-        self.away_third_down_conv = game.away_third_down_conv
-        self.away_third_down_att = game.away_third_down_att
-        self.away_fourth_down_conv = game.away_fourth_down_conv
-        self.away_fourth_down_att = game.away_fourth_down_att
-        self.away_top = game.away_top
+        self.away_yds = game["away_yds"]
+        self.away_pass_yds = game["away_pass_yds"]
+        self.away_rush_yds = game["away_rush_yds"]
+        self.away_fds = game["away_fds"]
+        self.away_tos = game["away_tos"]
+        self.away_penalties = game["away_penalties"]
+        self.away_penalty_yds = game["away_penalty_yds"]
+        self.away_third_down_conv = game["away_third_down_conv"]
+        self.away_third_down_att = game["away_third_down_att"]
+        self.away_fourth_down_conv = game["away_fourth_down_conv"]
+        self.away_fourth_down_att = game["away_fourth_down_att"]
+        self.away_top = game["away_top"]
 
     def __repr__(self):
         return f"{self.gameID}, {self.date}"
@@ -247,7 +261,7 @@ class Game_Log(Base):
 
     # create columns (use composite pkey)
     playerID = Column(String, ForeignKey("player_bios.playerID"), primary_key=True)
-    gameID = Column(String, ForeignKey("games.gameID"), primary_key=True)
+    gameID = Column(String, ForeignKey("game_links.game_id"), primary_key=True)
     date = Column('date', Date)
     game = Column('game', Integer)
     week = Column('week', Integer)
