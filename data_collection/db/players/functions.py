@@ -1,6 +1,6 @@
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, Column, String
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import exists
+from sqlalchemy.sql import text
 from models import Eligible_Player, Player, Game_Link, get_base
 import pandas as pd
 
@@ -273,6 +273,22 @@ def prepare_request_file():
 
 ##### DATABASE UTILITY FUNCTIONS #####
 '''
+adds new row(s) to an existing table. Should take a model.py table name and a column data type as args
+@TODO automatically write new data to added columns afterwards in same method
+'''
+def add_columns(table_name: str, columns: list):
+    session = Session()
+    # check if table exists
+    for column in columns:
+        column_name = column.compile(dialect=engine.dialect)
+        column_type = column.type.compile(engine.dialect)
+        session.execute(text('ALTER TABLE %s ADD COLUMN %s %s' % (table_name, column_name, column_type)))
+    session.commit()
+    session.close()
+
+
+
+'''
 Ensure all tables have been set up
 '''
 def create_all_tables():
@@ -304,6 +320,7 @@ Not currently used but may be used by the drop model method in the future
 def table_exists(table):
     # check for the existence of the table
     inspector = inspect(engine)
+    print(inspector.get_table_names)
     if table in inspector.get_table_names():
         return True
     else:
@@ -324,7 +341,8 @@ def main():
     # df = get_eligible_players.get_eligible_players("passing", 2023, REQUEST_COUNTER)[0]
     # upsert_eligible_players(df)
     # df = get_game_urls.get_games(2023)[0]
-    upsert_all_game_urls(1981, 1990)
+    # upsert_all_game_urls(2006, 2023)
+    pass
 
 
 if __name__ == '__main__':
