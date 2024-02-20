@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
-import time, requests, datetime
+import time, requests
+from datetime import datetime
 
 # declare Request Counter
 REQUEST_COUNTER = 0
@@ -13,14 +14,14 @@ def get_game_data(game_url: str) -> dict:
     # declare empty game data dict
     game = {
         'gameID': '',
-        'date': '', #
+        'datetime_et': '', #!
         'playoff': '',
         'home_team': '', #
         'away_team': '', #
         'home_coach': '', #
         'away_coach': '', #
-        'stadium': '',
-        'attendance': '',
+        'stadium': '', #
+        'attendance': '', #
         'h1q_pts': '',
         'h2q_pts': '',
         'h3q_pts': '',
@@ -35,7 +36,7 @@ def get_game_data(game_url: str) -> dict:
         'over_under': '',
         'head_ref': '',
         'scorigami': '',
-        'start_time_et': '', #
+        'total_game_time': '', #!
         'week': '',
         'day_of_week': '', #
         'rest_days': '',
@@ -75,10 +76,12 @@ def get_game_data(game_url: str) -> dict:
     scorebox = soup.find("div", {"class": "scorebox"})
 
     game = get_scorebox_elems(scorebox, game)
+
+    print(game)
     
     
 '''
-@TODO come back and write "if" blocks to catch when an element is not present. When not present, populate None
+Done for now. Gets game data from the div tagged "scorebox"
 '''
 def get_scorebox_elems(scorebox, game: dict) -> dict:
     # get the home team ID
@@ -105,16 +108,44 @@ def get_scorebox_elems(scorebox, game: dict) -> dict:
 
     # get metadata sub div
     metadata = scorebox.find_all("div", {'class': 'scorebox_meta'})[0]
+    # find all sub divs
+    sub_meta = metadata.find_all("div")
     # get date string
-    date_str = metadata.find("div").text
+    date_str = sub_meta[0].text
     # get day of week
     day_of_week = date_str[0:date_str.find(" ")]
-    game['day_of_week'] = day_of_week.weekday()
-    # get date
+    game['day_of_week'] = day_of_week
+    # get date and properly format
     date = date_str.replace(day_of_week, '').strip()
-    game['date'] = datetime.datetime.strptime(date, '%b %d, %Y').strftime('%Y-%m-%d')
+    game['datetime_et'] = datetime.strptime(date, '%b %d, %Y')
+
+    # @TODO add game datetime, stadium, attendance, time of game
+    # get list of metadata provided alongside the game and update values as provided
+    available_meta = []
+    # if we find a strong tag, it is generally data we want
+    for div in sub_meta:
+        if div.find("strong"):
+            available_meta.append(div)
+
+    # iterate through divs with strong tags and insert data as applicable
+    for elem in available_meta:
+        strong_elem = elem.find("strong")
+        if strong_elem.text == "Start Time":
+            # add start time to game date time if available
+            start_time = strong_elem.next_sibling[2:]
+            game_datetime = game['datetime_et'].strftime('%Y-%m-%d') + ' ' + start_time
+            game['datetime_et'] = datetime.strptime(game_datetime, '%Y-%m-%d %I:%M%p')
+        elif strong_elem.text == "Stadium":
+            # update stadium
+            game['stadium'] = elem.find("a")['href'].replace('/stadiums/', '').replace('.htm', '')
+        elif strong_elem.text == "Attendance":
+            # update attendance
+            game['attendance'] = int(elem.find("a").text.replace(',', ''))
+        elif strong_elem.text == "Time of Game":
+            # update total game time
+            game['total_game_time'] = strong_elem.next_sibling[2:]
     
-    # @TODO add start time, attendance, time of game
+    return game
 
 
 
