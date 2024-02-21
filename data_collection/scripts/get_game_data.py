@@ -17,19 +17,23 @@ def get_game_data(game_url: str) -> dict:
         'datetime_et': '', #!
         'playoff': '',
         'home_team': '', #
+        'home_team_code': '', #!
         'away_team': '', #
+        'away_team_code': '', #!
         'home_coach': '', #
         'away_coach': '', #
         'stadium': '', #
         'attendance': '', #
-        'h1q_pts': '',
-        'h2q_pts': '',
-        'h3q_pts': '',
-        'h4q_pts': '',
-        'a1q_pts': '',
-        'a2q_pts': '',
-        'a3q_pts': '',
-        'a4q_pts': '',
+        'h1q_pts': '', #
+        'h2q_pts': '', #
+        'h3q_pts': '', #
+        'h4q_pts': '', #
+        'hfinal_pts': '', #!
+        'a1q_pts': '', #
+        'a2q_pts': '', #
+        'a3q_pts': '', #
+        'a4q_pts': '', #
+        'afinal_pts': '', #!
         'toss_winner': '',
         'favored_team': '',
         'favored_by': '',
@@ -73,30 +77,40 @@ def get_game_data(game_url: str) -> dict:
 
     soup = get_soup(game_url)
 
-    scorebox = soup.find("div", {"class": "scorebox"})
+    # get metadata elements
+    meta = soup.find("div", {"class": "scorebox"})
+    game = add_meta_elems(meta, game)
 
-    game = get_scorebox_elems(scorebox, game)
+    # get quarterly score
+    box_score = soup.find("div", {"class": "linescore_wrap"})
+    game = add_quarterly_score(box_score, game)
 
-    print(game)
+    # @TODO this needs be fixed
+    game_info = soup.find("div", {"id": "div_game_info"})
+    game = add_game_info(game_info, game)
+
+
     
     
 '''
 Done for now. Gets game data from the div tagged "scorebox"
 '''
-def get_scorebox_elems(scorebox, game: dict) -> dict:
+def add_meta_elems(meta: BeautifulSoup, game: dict) -> dict:
     # get the home team ID
-    teams = scorebox.find_all("a", href=lambda href: href and href.startswith("/teams/"))
+    teams = meta.find_all("a", href=lambda href: href and href.startswith("/teams/"))
 
     # if exactly two teams cannot be found, raise an exception
     if len(teams) != 2:
         raise Exception("Invalid amount of teams found. Expected 2, found %." % len(teams))
     
     # trim first 7 characters from href to get team abbreviations
-    game['away_team'] = teams[0]['href'][7:10]
-    game['home_team'] = teams[1]['href'][7:10]
+    game['away_team'] = teams[0].text
+    game['away_team_code'] = teams[0]['href'][7:10]
+    game['home_team'] = teams[1].text
+    game['home_team_code'] = teams[1]['href'][7:10]
 
     # get coaches
-    coaches = scorebox.find_all("a", href=lambda href: href and href.startswith("/coaches/"))
+    coaches = meta.find_all("a", href=lambda href: href and href.startswith("/coaches/"))
 
     # if exactly two teams cannot be found, raise an exception
     if len(coaches) != 2:
@@ -107,7 +121,7 @@ def get_scorebox_elems(scorebox, game: dict) -> dict:
     game['home_coach'] = coaches[1]['href'].replace('/coaches/', '').replace('.htm', '')
 
     # get metadata sub div
-    metadata = scorebox.find_all("div", {'class': 'scorebox_meta'})[0]
+    metadata = meta.find_all("div", {'class': 'scorebox_meta'})[0]
     # find all sub divs
     sub_meta = metadata.find_all("div")
     # get date string
@@ -146,6 +160,60 @@ def get_scorebox_elems(scorebox, game: dict) -> dict:
             game['total_game_time'] = strong_elem.next_sibling[2:]
     
     return game
+
+
+
+def add_quarterly_score(box_score: BeautifulSoup, game: dict) -> dict:
+    # get relevaant table cells
+    score_table = box_score.find('tbody').find_all('td')
+
+    q_scores = []
+    for cell in score_table:
+        # ignore cells that contain non-text information
+        if cell.find("div"):
+            continue
+        else:
+            q_scores.append(cell.text)
+
+    # if unexpected number of cells, throw an exception
+    if len(q_scores) != 12:
+        raise Exception("Box Score table not appearing as expected. Getting %s cells instead of 12." % len(q_scores))
+        
+
+    if q_scores[0] == game['away_team']:
+        game['h1q_pts'] = q_scores[1]
+        game['h2q_pts'] = q_scores[2]
+        game['h3q_pts'] = q_scores[3]
+        game['h4q_pts'] = q_scores[4]
+        game['hfinal_pts'] = q_scores[5]
+        game['a1q_pts'] = q_scores[7]
+        game['a2q_pts'] = q_scores[8]
+        game['a3q_pts'] = q_scores[9]
+        game['a4q_pts'] = q_scores[10]
+        game['afinal_pts'] = q_scores[11]
+    else:
+        game['a1q_pts'] = q_scores[1]
+        game['a2q_pts'] = q_scores[2]
+        game['a3q_pts'] = q_scores[3]
+        game['a4q_pts'] = q_scores[4]
+        game['afinal_pts'] = q_scores[5]
+        game['h1q_pts'] = q_scores[7]
+        game['h2q_pts'] = q_scores[8]
+        game['h3q_pts'] = q_scores[9]
+        game['h4q_pts'] = q_scores[10]
+        game['hfinal_pts'] = q_scores[11]
+    
+    return game
+
+
+
+def add_game_info(game_info: BeautifulSoup, game: dict) -> dict:
+    # get table rows
+    #table = game_info.find("div", {"id": "game_info_sh"})
+
+    print(game_info)
+    
+
 
 
 
