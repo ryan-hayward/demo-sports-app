@@ -14,8 +14,9 @@ def get_game_data(game_url: str) -> dict:
     # declare empty game data dict
     game = {
         'gameID': '',
-        'datetime_et': '', #!
-        'playoff': False, #
+        'datetime_et': '', 
+        'playoff': False, 
+        'week': '', 
         'home_team': '', #
         'home_team_code': '', #!
         'away_team': '', #
@@ -43,7 +44,6 @@ def get_game_data(game_url: str) -> dict:
         'over_under': '', #
         'head_ref': '', #
         'total_game_time': '', #!
-        'week': '', #
         'day_of_week': '', #
         'home_yds': '', #
         'home_pass_att': '', #!

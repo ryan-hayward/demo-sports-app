@@ -11,6 +11,7 @@ from db.db_config import config
 import scripts.get_game_logs as game_log
 import scripts.get_eligible_players as get_eligible_players
 import scripts.get_game_urls as get_game_urls
+import scripts.get_game_data as get_game_data
 
 # Set up the engine, which provides access to the DB
 params = config()
@@ -32,12 +33,25 @@ def upsert_game_information(season: int, week: int):
     # create session
     session = Session()
     # get target game links
-    tgt_games = session.query(Game_Link).filter_by(season=season, week=week)
-    # store game links and ids
-    game_links, game_ids = [], []
-    for game in tgt_games:
-        game_links.append(game.link)
-        game_ids.append(game.game_id)
+    tgt_game_links = session.query(Game_Link).filter_by(season=season, week=week)
+    # upsert game information
+    for game_link in tgt_game_links:
+        # get game dictionary and set game id
+        game = get_game_data.get_game_data(game_link.link)
+        game['gameID'] = game_link.game_id
+        # check if record exists
+        exists = session.query(Game).filter_by(gameID=game['gameID']).first() is not None
+        # if it does, update
+        if exists:
+            print("this already exists in the db.")
+        # if not, add playerr
+        else:
+            new_game = Game(game)
+            session.add(new_game)
+    
+    # commit changes & close session
+    session.commit()
+    session.close_all()
 
 
 
@@ -228,7 +242,8 @@ def upsert_game_urls(data: pd.DataFrame):
             session.query(Game_Link).filter_by(link=game_link.link).update({
                 'season': game_link.season,
                 'week': game_link.week,
-                'link': game_link.link
+                'link': game_link.link,
+                'gameid': game_link.game_id
             })
         # if not, add playerr
         else:
@@ -361,6 +376,7 @@ def main():
     # df = get_game_urls.get_games(2023)[0]
     # upsert_all_game_urls(2006, 2023)
     upsert_game_information(2023, 1)
+    # drop_table(Game)
 
 
 if __name__ == '__main__':
