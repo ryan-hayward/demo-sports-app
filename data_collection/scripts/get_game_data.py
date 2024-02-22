@@ -15,7 +15,7 @@ def get_game_data(game_url: str) -> dict:
     game = {
         'gameID': '',
         'datetime_et': '', #!
-        'playoff': '',
+        'playoff': False, #
         'home_team': '', #
         'home_team_code': '', #!
         'away_team': '', #
@@ -24,16 +24,18 @@ def get_game_data(game_url: str) -> dict:
         'away_coach': '', #
         'stadium': '', #
         'attendance': '', #
-        'h1q_pts': '', #
-        'h2q_pts': '', #
-        'h3q_pts': '', #
-        'h4q_pts': '', #
-        'hfinal_pts': '', #!
-        'a1q_pts': '', #
-        'a2q_pts': '', #
-        'a3q_pts': '', #
-        'a4q_pts': '', #
-        'afinal_pts': '', #!
+        'h1q_pts': 0, #
+        'h2q_pts': 0, #
+        'h3q_pts': 0, #
+        'h4q_pts': 0, #
+        'h_ot_pts': 0, #!
+        'hfinal_pts': 0, #!
+        'a1q_pts': 0, #
+        'a2q_pts': 0, #
+        'a3q_pts': 0, #
+        'a4q_pts': 0, #
+        'a_ot_pts': 0, #!
+        'afinal_pts': 0, #!
         'toss_winner': '', #
         'toss_deferred': False, #!
         'favored_team': '', #
@@ -41,41 +43,45 @@ def get_game_data(game_url: str) -> dict:
         'over_under': '', #
         'head_ref': '', #
         'total_game_time': '', #!
-        'week': '',
+        'week': '', #
         'day_of_week': '', #
-        'rest_days': '',
-        'miles_traveled': '',
-        'temp_f': '',
-        'wind_chill_f': '',
-        'humidity': '',
-        'wind_speed': '',
-        'home_yds': '',
-        'home_pass_yds': '',
-        'home_rush_yds': '',
-        'home_fds': '',
-        'home_tos': '',
-        'home_penalties': '',
-        'home_penalty_yds': '',
-        'home_third_down_conv': '',
-        'home_third_down_att': '',
-        'home_fourth_down_conv': '',
-        'home_fourth_down_att': '',
-        'home_top': '',
-        'away_yds': '',
-        'away_pass_yds': '',
-        'away_rush_yds': '',
-        'away_fds': '',
-        'away_tos': '',
-        'away_penalties': '',
-        'away_penalty_yds': '',
-        'away_third_down_conv': '',
-        'away_third_down_att': '',
-        'away_fourth_down_conv': '',
-        'away_fourth_down_att': '',
-        'away_top': ''
+        'home_yds': '', #
+        'home_pass_att': '', #!
+        'home_pass_yds': '', #
+        'home_rush_att': '', #!
+        'home_rush_yds': '', #
+        'home_fds': '', #
+        'home_int': '', #!
+        'home_fum': '', #!
+        'home_fum_lost': '', #!
+        'home_penalties': '', #
+        'home_penalty_yds': '', #
+        'home_third_down_conv': '', #
+        'home_third_down_att': '', #
+        'home_fourth_down_conv': '', #
+        'home_fourth_down_att': '', #
+        'home_top': '', #
+        'away_yds': '', #
+        'away_pass_att': '', #!
+        'away_pass_yds': '', #
+        'away_rush_att': '', #!
+        'away_rush_yds': '', #
+        'away_fds': '', #
+        'away_int': '', #!
+        'away_fum': '', #!
+        'away_fum_lost': '', #!
+        'away_penalties': '', #
+        'away_penalty_yds': '', #
+        'away_third_down_conv': '', #
+        'away_third_down_att': '', #
+        'away_fourth_down_conv': '', #
+        'away_fourth_down_att': '', #
+        'away_top': '' #
     }
 
+    # get soup and find non-content wrapped elems
     soup = get_soup(game_url)
+    game = get_week_and_playoff(soup, game)
 
     # get metadata elements
     meta = soup.find("div", {"class": "scorebox"})
@@ -89,10 +95,27 @@ def get_game_data(game_url: str) -> dict:
     game_info = soup.find("div", {"class": "content_grid"})
     game = add_game_info(game_info, game)
 
+    game_stats = soup.find("div", {"id": "all_team_stats"})
+    game = add_game_stats(game_stats, game)
+
     print(game)
+    return game
 
 
+
+def get_week_and_playoff(soup: BeautifulSoup, game: dict) -> dict:
+    week_tag = get_comment_tags(soup.find("div", {"id": "all_other_scores"}))
+    week_str_list = week_tag.find("h2").text.split(' ')
+    week = week_str_list[-1]
+    if week == "Playoffs":
+        game['playoff'] = True
+        game['week'] = 99
+    else:
+        game['week'] = week
     
+    return game
+
+
     
 '''
 Done for now. Gets game data from the div tagged "scorebox"
@@ -176,35 +199,42 @@ def add_quarterly_score(box_score: BeautifulSoup, game: dict) -> dict:
             continue
         else:
             q_scores.append(cell.text)
-
-    # if unexpected number of cells, throw an exception
-    if len(q_scores) != 12:
-        raise Exception("Box Score table not appearing as expected. Getting %s cells instead of 12." % len(q_scores))
-        
-
-    if q_scores[0] == game['away_team']:
-        game['h1q_pts'] = q_scores[1]
-        game['h2q_pts'] = q_scores[2]
-        game['h3q_pts'] = q_scores[3]
-        game['h4q_pts'] = q_scores[4]
-        game['hfinal_pts'] = q_scores[5]
-        game['a1q_pts'] = q_scores[7]
-        game['a2q_pts'] = q_scores[8]
-        game['a3q_pts'] = q_scores[9]
-        game['a4q_pts'] = q_scores[10]
-        game['afinal_pts'] = q_scores[11]
-    else:
-        game['a1q_pts'] = q_scores[1]
-        game['a2q_pts'] = q_scores[2]
-        game['a3q_pts'] = q_scores[3]
-        game['a4q_pts'] = q_scores[4]
-        game['afinal_pts'] = q_scores[5]
-        game['h1q_pts'] = q_scores[7]
-        game['h2q_pts'] = q_scores[8]
-        game['h3q_pts'] = q_scores[9]
-        game['h4q_pts'] = q_scores[10]
-        game['hfinal_pts'] = q_scores[11]
     
+    # get location of home and away within the array
+    a_index = q_scores.index(game['away_team'])
+    h_index = q_scores.index(game['home_team'])
+    away_scores = (q_scores[a_index + 1:h_index]) #ignore team name
+    home_scores = (q_scores[h_index + 1:]) #ignore team name
+
+    # catch error for too few quarters
+    if len(away_scores) < 5:
+        raise Exception("Less quarters than expected.")
+    # add regular scores
+    game['h1q_pts'] = int(home_scores[0])
+    game['h2q_pts'] = int(home_scores[1])
+    game['h3q_pts'] = int(home_scores[2])
+    game['h4q_pts'] = int(home_scores[3])
+    game['a1q_pts'] = int(away_scores[0])
+    game['a2q_pts'] = int(away_scores[1])
+    game['a3q_pts'] = int(away_scores[2])
+    game['a4q_pts'] = int(away_scores[3])
+
+    # add finals for non-OT games
+    if len(away_scores) == 5:
+        game['h_ot_pts'] = 0
+        game['hfinal_pts'] = int(home_scores[4])
+        game['a_ot_pts'] = 0
+        game['afinal_pts'] = int(away_scores[4])
+    # OT Games
+    else:
+        # get OTs
+        for i in range(4, len(away_scores) - 1):
+            game['h_ot_pts'] = game['h_ot_pts'] + int(home_scores[i])
+            game['a_ot_pts'] = game['a_ot_pts'] + int(away_scores[i])
+        # get final PTs
+        game['hfinal_pts'] = int(home_scores[len(home_scores) - 1])
+        game['afinal_pts'] = int(away_scores[len(away_scores) - 1])
+
     return game
 
 
@@ -225,7 +255,7 @@ def add_game_info(game_info: BeautifulSoup, game: dict) -> dict:
             toss_array = value.split(" ")
             game['toss_winner'] = toss_array[0]
             if len(toss_array) == 2:
-                game['toss_deferred'] == True
+                game['toss_deferred'] = True
         elif key == "Vegas Line":
             spread_array = value.split('-')
             # only write vegas lines when a team is favored (i.e. ignore pickems if they exist)
@@ -238,21 +268,84 @@ def add_game_info(game_info: BeautifulSoup, game: dict) -> dict:
             game['over_under'] = ou_array[0]
         # @TODO could add in surface and roof variables here, also could shift collection or att and duration to here
     
-    # get head ref
+    # get head ref (IF AVAILABLE)
     officials = game_info.find("div", {"id": "all_officials"})
-    official_table = get_comment_tags(officials)
-    # get the table rows, omitting the header
-    o_table_rows = official_table.find_all('tr')[1:]
-    for row in o_table_rows:
-        key = row.find("th").text
-        value  = row.find("td").text
-        if key == "Referee":
-            game['head_ref'] = value
-            break
-        # @TODO could add additional referee info here
-    
-    return game
+    if(officials):
+        official_table = get_comment_tags(officials)
+        # get the table rows, omitting the header
+        o_table_rows = official_table.find_all('tr')[1:]
+        for row in o_table_rows:
+            key = row.find("th").text
+            value  = row.find("td").text
+            if key == "Referee":
+                game['head_ref'] = value
+                break
+            # @TODO could add additional referee info here
+        return game
+    else:
+        return game
 
+
+
+'''
+Add total stats for each team to the game dictionary
+'''
+def add_game_stats(game_stats: BeautifulSoup, game: dict) -> dict:
+    stat_table = get_comment_tags(game_stats)
+    table_rows = stat_table.find_all('tr')[1:] #omit header row, get table rows
+    # insert data
+    for row in table_rows:
+        # find row header
+        key = row.find("th").text
+        # find home and away values
+        aval = row.find("td", {"data-stat": 'vis_stat'}).text
+        hval = row.find("td", {"data-stat": 'vis_stat'}).text
+
+        # use key to find correct game attribute to write to. Insert value
+        if key == "First Downs":
+            game['home_fds'] = hval
+            game['away_fds'] = aval
+        elif key == "Rush-Yds-TDs":
+            game['home_rush_att'] = hval.split('-')[0]
+            game['home_rush_yds'] = hval.split('-')[1]
+            game['away_rush_att'] = aval.split('-')[0]
+            game['away_rush_yds'] = aval.split('-')[1]
+        elif key == "Cmp-Att-Yd-TD-INT":
+            game['home_pass_att'] = hval.split('-')[1]
+            game['home_pass_yds'] = hval.split('-')[2]
+            game['home_int'] = hval.split('-')[4]
+            game['away_pass_att'] = aval.split('-')[1]
+            game['away_pass_yds'] = aval.split('-')[2]
+            game['away_int'] = aval.split('-')[4]
+        elif key == "Total Yards":
+            game['home_yds'] = hval
+            game['away_yds'] = aval
+        elif key == "Fumbles-Lost":
+            game['home_fum'] = hval.split('-')[0]
+            game['home_fum_lost'] = hval.split('-')[1]
+            game['away_fum'] = aval.split('-')[0]
+            game['away_fum_lost'] = aval.split('-')[1]
+        elif key == "Penalties-Yards":
+            game['home_penalties'] = hval.split('-')[0]
+            game['home_penalty_yds'] = hval.split('-')[1]
+            game['away_penalties'] = aval.split('-')[0]
+            game['away_penalty_yds'] = aval.split('-')[1]
+        elif key == "Third Down Conv.":
+            game['home_third_down_conv'] = hval.split('-')[0]
+            game['home_third_down_att'] = hval.split('-')[1]
+            game['away_third_down_conv'] = aval.split('-')[0]
+            game['away_third_down_att'] = aval.split('-')[1]
+        elif key == "Fourth Down Conv.":
+            game['home_fourth_down_conv'] = hval.split('-')[0]
+            game['home_fourth_down_att'] = hval.split('-')[1]
+            game['away_fourth_down_conv'] = aval.split('-')[0]
+            game['away_fourth_down_att'] = aval.split('-')[1]
+        elif key == "Time of Possession":
+            game['home_top'] = hval
+            game['away_top'] = aval
+
+    return game
+        
 
 
 '''
@@ -308,7 +401,7 @@ def reset_request_counter():
 
 
 def main():
-    get_game_data('https://www.pro-football-reference.com/boxscores/202309070kan.htm')
+    get_game_data('https://www.pro-football-reference.com/boxscores/198701030cle.htm')
 
 
 
