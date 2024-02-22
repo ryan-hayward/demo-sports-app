@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 import time, requests
 from datetime import datetime
 
@@ -34,12 +34,12 @@ def get_game_data(game_url: str) -> dict:
         'a3q_pts': '', #
         'a4q_pts': '', #
         'afinal_pts': '', #!
-        'toss_winner': '',
-        'favored_team': '',
-        'favored_by': '',
-        'over_under': '',
-        'head_ref': '',
-        'scorigami': '',
+        'toss_winner': '', #
+        'toss_deferred': False, #!
+        'favored_team': '', #
+        'favored_by': '', #
+        'over_under': '', #
+        'head_ref': '', #
         'total_game_time': '', #!
         'week': '',
         'day_of_week': '', #
@@ -85,9 +85,11 @@ def get_game_data(game_url: str) -> dict:
     box_score = soup.find("div", {"class": "linescore_wrap"})
     game = add_quarterly_score(box_score, game)
 
-    # @TODO this needs be fixed
-    game_info = soup.find("div", {"id": "div_game_info"})
+    # Add game stats by targeting the first content grid
+    game_info = soup.find("div", {"class": "content_grid"})
     game = add_game_info(game_info, game)
+
+    print(game)
 
 
     
@@ -208,12 +210,58 @@ def add_quarterly_score(box_score: BeautifulSoup, game: dict) -> dict:
 
 
 def add_game_info(game_info: BeautifulSoup, game: dict) -> dict:
-    # get table rows
-    #table = game_info.find("div", {"id": "game_info_sh"})
+    # get the betting stats from the first table
+    betting_stats = game_info.find("div", {"id": "all_game_info"})
+    betting_table = get_comment_tags(betting_stats)
+    # get the table rows, omitting the header
+    table_rows = betting_table.find_all('tr')[1:]
+    # iterate through rows, identify rows that have data in them, and add them to the game dicts
+    for row in table_rows:
+        key = row.find("th").text
+        value  = row.find("td").text
 
-    print(game_info)
+        # use key to find correct game attribute to write to. Insert value
+        if key == "Won Toss":
+            toss_array = value.split(" ")
+            game['toss_winner'] = toss_array[0]
+            if len(toss_array) == 2:
+                game['toss_deferred'] == True
+        elif key == "Vegas Line":
+            spread_array = value.split('-')
+            # only write vegas lines when a team is favored (i.e. ignore pickems if they exist)
+            if len(spread_array) == 2:
+                game['favored_team'] = spread_array[0].strip()
+                game['favored_by'] = spread_array[1]
+        elif key == "Over/Under":
+            ou_array = value.split(' ')
+            # ignore (over/under)
+            game['over_under'] = ou_array[0]
+        # @TODO could add in surface and roof variables here, also could shift collection or att and duration to here
     
+    # get head ref
+    officials = game_info.find("div", {"id": "all_officials"})
+    official_table = get_comment_tags(officials)
+    # get the table rows, omitting the header
+    o_table_rows = official_table.find_all('tr')[1:]
+    for row in o_table_rows:
+        key = row.find("th").text
+        value  = row.find("td").text
+        if key == "Referee":
+            game['head_ref'] = value
+            break
+        # @TODO could add additional referee info here
+    
+    return game
 
+
+
+'''
+Extracts the first comment from a bs4 object, return comments as list of bs4 tag objects. Need
+to make sure to submit a bs4 tag with only one commeent
+'''
+def get_comment_tags(soup: BeautifulSoup) -> list:
+    comment = soup.find(string=lambda text: isinstance(text, Comment))
+    return BeautifulSoup(comment.extract(), 'html.parser')
 
 
 
