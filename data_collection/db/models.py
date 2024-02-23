@@ -189,6 +189,8 @@ class Game(Base):
     away_fourth_down_conv = Column('away_fourth_down_conv', Integer)
     away_fourth_down_att = Column('away_fourth_down_att', Integer)
     away_top = Column('away_top', String)
+    # forgot this one
+    season = Column('season', Integer)
 
     def __init__(self, game: dict):
         self.gameID = game["gameID"]
@@ -259,6 +261,8 @@ class Game(Base):
         self.away_fourth_down_conv = game["away_fourth_down_conv"]
         self.away_fourth_down_att = game["away_fourth_down_att"]
         self.away_top = game["away_top"]
+        # forgot this one because I'm an idiot
+        self.season = game["season"]
 
     def __repr__(self):
         return f"{self.gameID}, {self.week}"

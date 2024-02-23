@@ -1,9 +1,6 @@
 from bs4 import BeautifulSoup, Comment
-import time, requests
+import time, requests, random
 from datetime import datetime
-
-# declare Request Counter
-REQUEST_COUNTER = 0
 
 
 
@@ -24,7 +21,7 @@ def get_game_data(game_url: str) -> dict:
         'home_coach': '', #
         'away_coach': '', #
         'stadium': '', #
-        'attendance': '', #
+        'attendance': 0, #
         'h1q_pts': 0, #
         'h2q_pts': 0, #
         'h3q_pts': 0, #
@@ -40,43 +37,44 @@ def get_game_data(game_url: str) -> dict:
         'toss_winner': '', #
         'toss_deferred': False, #!
         'favored_team': '', #
-        'favored_by': '', #
-        'over_under': '', #
+        'favored_by': 0, #
+        'over_under': 0, #
         'head_ref': '', #
         'total_game_time': '', #!
         'day_of_week': '', #
-        'home_yds': '', #
-        'home_pass_att': '', #!
-        'home_pass_yds': '', #
-        'home_rush_att': '', #!
-        'home_rush_yds': '', #
-        'home_fds': '', #
-        'home_int': '', #!
-        'home_fum': '', #!
-        'home_fum_lost': '', #!
-        'home_penalties': '', #
-        'home_penalty_yds': '', #
-        'home_third_down_conv': '', #
-        'home_third_down_att': '', #
-        'home_fourth_down_conv': '', #
-        'home_fourth_down_att': '', #
-        'home_top': '', #
-        'away_yds': '', #
-        'away_pass_att': '', #!
-        'away_pass_yds': '', #
-        'away_rush_att': '', #!
-        'away_rush_yds': '', #
-        'away_fds': '', #
-        'away_int': '', #!
-        'away_fum': '', #!
-        'away_fum_lost': '', #!
-        'away_penalties': '', #
-        'away_penalty_yds': '', #
-        'away_third_down_conv': '', #
-        'away_third_down_att': '', #
-        'away_fourth_down_conv': '', #
-        'away_fourth_down_att': '', #
-        'away_top': '' #
+        'home_yds': 0, #
+        'home_pass_att': 0, #!
+        'home_pass_yds': 0, #
+        'home_rush_att': 0, #!
+        'home_rush_yds': 0, #
+        'home_fds': 0, #
+        'home_int': 0, #!
+        'home_fum': 0, #!
+        'home_fum_lost': 0, #!
+        'home_penalties': 0, #
+        'home_penalty_yds': 0, #
+        'home_third_down_conv': 0, #
+        'home_third_down_att': 0, #
+        'home_fourth_down_conv': 0, #
+        'home_fourth_down_att': 0, #
+        'home_top': 0, #
+        'away_yds': 0, #
+        'away_pass_att': 0, #!
+        'away_pass_yds': 0, #
+        'away_rush_att': 0, #!
+        'away_rush_yds': 0, #
+        'away_fds': 0, #
+        'away_int': 0, #!
+        'away_fum': 0, #!
+        'away_fum_lost': 0, #!
+        'away_penalties': 0, #
+        'away_penalty_yds': 0, #
+        'away_third_down_conv': 0, #
+        'away_third_down_att': 0, #
+        'away_fourth_down_conv': 0, #
+        'away_fourth_down_att': 0, #
+        'away_top': 0, #
+        'season': 0
     }
 
     # get soup and find non-content wrapped elems
@@ -112,7 +110,6 @@ def get_week_and_playoff(soup: BeautifulSoup, game: dict) -> dict:
         game['week'] = 99
     else:
         game['week'] = week
-    
     return game
 
 
@@ -191,7 +188,6 @@ def add_meta_elems(meta: BeautifulSoup, game: dict) -> dict:
 def add_quarterly_score(box_score: BeautifulSoup, game: dict) -> dict:
     # get relevaant table cells
     score_table = box_score.find('tbody').find_all('td')
-
     q_scores = []
     for cell in score_table:
         # ignore cells that contain non-text information
@@ -359,49 +355,20 @@ def get_comment_tags(soup: BeautifulSoup) -> list:
 
 
 '''
-A helper method to make requests to a webpage for HTML and convert the HTML to a Beautiful Soup object.
-A counter has been included to track the # of requests made in a given run
-
-    Args:
-        request_url (str): address of page we would like to scrape
-    
-    Returns:
-        BeautifulSoup object representing parsed html
-    
-    @NOTE I have added sleep() in order to prevent session locking from PFR. These limitations are put in
-    to maintain site performance.
+Pioneering a different timeout avoidance method
 '''
 def get_soup(request_url: str) -> BeautifulSoup:
-    global REQUEST_COUNTER
-    # if request counter is already at 20, sleep program for sixty seconds
-    if REQUEST_COUNTER >= 20:
-        print("Maximum requests per minute reached, now sleeping program for sixty seconds.")
-        reset_request_counter() # reset request counting file
-        for i in range(60, 0, -1):
-            time.sleep(1)
-            print(i)
-        REQUEST_COUNTER = 0
-    # store response from request
+    # store response from request and pause to avoid ban
     response = requests.get(request_url)
-    # update the request counter
-    REQUEST_COUNTER += 1
+    pause = round(random.uniform(0.5, 4.5), 2)
+    time.sleep(pause)
     # return soup
     return BeautifulSoup(response.text, 'html.parser')
 
 
 
-'''
-Reset the stored request counter to zero
-'''
-def reset_request_counter():
-    file = open("data_collection/utils/request_counter.txt", "w")
-    file.write("0")
-    file.close()
-
-
-
 def main():
-    get_game_data('https://www.pro-football-reference.com/boxscores/198701030cle.htm')
+    get_game_data('https://www.pro-football-reference.com/boxscores/202309240min.htm')
 
 
 

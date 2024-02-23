@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, inspect, Column, String
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
 from models import Eligible_Player, Player, Game_Link, get_base, Game
@@ -7,7 +7,7 @@ import pandas as pd
 # add parent directory to sys.path and import packages from sibling modules
 import sys
 sys.path.append('./data_collection')
-from db.db_config import config
+from db_config import config
 import scripts.get_game_logs as game_log
 import scripts.get_eligible_players as get_eligible_players
 import scripts.get_game_urls as get_game_urls
@@ -36,16 +36,20 @@ def upsert_game_information(season: int, week: int):
     tgt_game_links = session.query(Game_Link).filter_by(season=season, week=week)
     # upsert game information
     for game_link in tgt_game_links:
-        # get game dictionary and set game id
-        game = get_game_data.get_game_data(game_link.link)
-        game['gameID'] = game_link.game_id
         # check if record exists
-        exists = session.query(Game).filter_by(gameID=game['gameID']).first() is not None
-        # if it does, update
+        exists = session.query(Game).filter_by(gameID=game_link.game_id).first() is not None
+        # if it exists, update season
         if exists:
-            print("this already exists in the db.")
-        # if not, add playerr
+            session.query(Game).filter_by(gameID=game_link.game_id).update({
+                'season': game_link.season
+            })
+        # if not, add player
         else:
+            # get game dictionary and set game id
+            game = get_game_data.get_game_data(game_link.link)
+            game['gameID'] = game_link.game_id
+            game['season'] = game_link.season
+            # add the game to the db
             new_game = Game(game)
             session.add(new_game)
     
@@ -53,6 +57,40 @@ def upsert_game_information(season: int, week: int):
     session.commit()
     session.close_all()
 
+
+'''
+Upsert all games within a given set of season(s). When start week is provided, start the collection
+process at start_season.start_week
+'''
+def upsert_all_game_information(start_season: int, end_season: int, start_week=None):
+    # ensure that target table exists
+    create_all_tables()
+    # set request tracking file to zero
+    prepare_request_file()
+    # create session
+    session = Session()
+    # insert games
+    for i in range(start_season, end_season + 1):
+        # get unique weeks and order from lowest to highest
+        weeks = session.query(Game_Link.week).filter_by(
+            season=i).distinct().order_by(Game_Link.week.asc())
+        # get week list
+        week_list = []
+        for week in weeks:
+            week_list.append(week[0])
+        # if start week is provided, start at that week and loop until end (assuming no week jumps)
+        if(start_week):
+            for j in range(start_week, len(week_list) + 1):
+                upsert_game_information(i, j)
+        # else loop through weeks and enter data (accommodating for years with skipped weeks)
+        else:
+            for week in week_list:
+                upsert_game_information(i, week)
+        # after start season data has been collected, reset start week to None
+        start_week = None
+    session.commit()
+    session.close()
+        
 
 
 ##### ELIGIBLE PLAYER TABLE MODIFICATIONS #####
@@ -375,7 +413,8 @@ def main():
     # upsert_eligible_players(df)
     # df = get_game_urls.get_games(2023)[0]
     # upsert_all_game_urls(2006, 2023)
-    upsert_game_information(2023, 1)
+    # upsert_game_information(2023, 1)
+    upsert_all_game_information(2020, 2020)
     # drop_table(Game)
 
 
