@@ -4,17 +4,18 @@ from sqlalchemy.sql import text
 from models import Eligible_Player, Player, Game_Link, get_base, Game
 import pandas as pd
 
-# add parent directory to sys.path and import packages from sibling modules
-import sys
-sys.path.append('./data_collection')
-from db_config import config
-import scripts.get_game_logs as game_log
-import scripts.get_eligible_players as get_eligible_players
-import scripts.get_game_urls as get_game_urls
-import scripts.get_game_data as get_game_data
+# add root directory of project to path
+import os, sys
+sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-3]))
+# import required modules
+import config.db_config as config
+import data_collection.scripts.get_eligible_players as get_eligible_players
+import data_collection.scripts.get_game_logs as game_log
+import data_collection.scripts.get_game_urls as get_game_urls
+import data_collection.scripts.get_game_data as get_game_data
 
 # Set up the engine, which provides access to the DB
-params = config()
+params = config.config()
 connection_url = 'postgresql://%s:%s@%s/%s' % (params['user'], params['password'], params['host'], params['database'])
 engine = create_engine(connection_url, echo=True)
 
@@ -410,13 +411,13 @@ specific lines of data from each table
 def main():
     # upsert_all_eligible_players(2020, 2023)
     # df = get_eligible_players.get_eligible_players("passing", 2023, REQUEST_COUNTER)[0]
-    # upsert_eligible_players(df)
+    # upsert_eligible_players
     # df = get_game_urls.get_games(2023)[0]
     # upsert_all_game_urls(2006, 2023)
     # upsert_game_information(2023, 1)
-    upsert_all_game_information(2020, 2020)
+    # upsert_all_game_information(2020, 2020)
     # drop_table(Game)
-
+    print("Hello World.")
 
 if __name__ == '__main__':
     main()

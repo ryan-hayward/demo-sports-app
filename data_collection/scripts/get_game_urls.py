@@ -1,8 +1,6 @@
 import pandas as pd
 from bs4 import BeautifulSoup
-import requests
-import time
-import datetime
+import requests, time, datetime
 
 REQUEST_COUNTER = 0
 
