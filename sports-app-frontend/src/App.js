@@ -4,7 +4,7 @@ import LinearRegression from './LinearRegression';
 function App() {
   return (
     <div>
-      <LinearRegression />
+      <LinearRegression/>
     </div>
   );
 }
