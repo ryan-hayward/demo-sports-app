@@ -77,7 +77,7 @@ class AuthUserUserPermissions(models.Model):
         unique_together = (('user', 'permission'),)
 
 
-class Coaches(models.Model):
+class Coach(models.Model):
     coachid = models.CharField(db_column='coachID', primary_key=True)  # Field name made lowercase.
     name = models.CharField(blank=True, null=True)
     start_year = models.IntegerField(blank=True, null=True)
@@ -149,9 +149,9 @@ class DjangoSession(models.Model):
         db_table = 'django_session'
 
 
-class EligiblePlayers(models.Model):
+class EligiblePlayer(models.Model):
     seasonid = models.CharField(db_column='seasonID', primary_key=True)  # Field name made lowercase.
-    playerid = models.ForeignKey('PlayerBios', models.DO_NOTHING, db_column='playerID', blank=True, null=True)  # Field name made lowercase.
+    playerid = models.ForeignKey('PlayerBio', models.DO_NOTHING, db_column='playerID', blank=True, null=True)  # Field name made lowercase.
     name = models.CharField(blank=True, null=True)
     position = models.CharField(blank=True, null=True)
     age = models.IntegerField(blank=True, null=True)
@@ -162,7 +162,7 @@ class EligiblePlayers(models.Model):
         db_table = 'eligible_players'
 
 
-class GameLinks(models.Model):
+class GameLink(models.Model):
     season = models.IntegerField(blank=True, null=True)
     week = models.IntegerField(blank=True, null=True)
     game_link = models.CharField(primary_key=True)
@@ -173,7 +173,7 @@ class GameLinks(models.Model):
         db_table = 'game_links'
 
 
-class Games(models.Model):
+class Game(models.Model):
     gameid = models.CharField(db_column='gameID', primary_key=True)  # Field name made lowercase.
     datetime = models.DateTimeField(blank=True, null=True)
     playoff = models.BooleanField(blank=True, null=True)
@@ -248,7 +248,7 @@ class Games(models.Model):
         return self.gameid
 
 
-class PlayerBios(models.Model):
+class PlayerBio(models.Model):
     playerid = models.CharField(db_column='playerID', primary_key=True)  # Field name made lowercase.
     birth_year = models.IntegerField(blank=True, null=True)
     first_name = models.CharField(blank=True, null=True)
@@ -259,8 +259,8 @@ class PlayerBios(models.Model):
         db_table = 'player_bios'
 
 
-class PlayerGameLogs(models.Model):
-    playerid = models.OneToOneField(PlayerBios, models.DO_NOTHING, db_column='playerID', primary_key=True)  # Field name made lowercase. The composite primary key (playerID, gameID) found, that is not supported. The first column is selected.
+class PlayerGameLog(models.Model):
+    playerid = models.OneToOneField(PlayerBio, models.DO_NOTHING, db_column='playerID', primary_key=True)  # Field name made lowercase. The composite primary key (playerID, gameID) found, that is not supported. The first column is selected.
     gameid = models.CharField(db_column='gameID')  # Field name made lowercase.
     date = models.DateField(blank=True, null=True)
     game = models.IntegerField(blank=True, null=True)
