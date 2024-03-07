@@ -1,13 +1,15 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from django.http import HttpResponse
+from rest_framework.request import Request
+from django.http import HttpResponse, JsonResponse
 from sklearn.linear_model import LinearRegression
 from matplotlib import pyplot as plt
 from .models import Game
 import pandas as pd
 import numpy as np
-import json
+
+VALID_MODELS = ['Coach', 'Player', 'Game'] #@TODO add all valid models as they come in
 
 def index(request):
     return HttpResponse("Hello, World. Doing linear regression here.")
@@ -15,6 +17,10 @@ def index(request):
 @api_view(['GET'])
 # this API should be called with the structure 
 def linear_regression(request):
+    # return error code if either expected param is absent
+    if(request.GET.get('x_var') is None or request.GET.get('y_var') is None):
+       return Response("Please ensure you have selected a dependent and independent variable.", status=400)
+
     df = pd.DataFrame(list(Game.objects.all().values()))
     # get x and y var names (hard code in defaults for testing purposes)
     x_var = request.GET.get('x_var') or 'home_pass_att'
@@ -40,3 +46,24 @@ def linear_regression(request):
         'x_var': x_var,
         'y_var': y_var
     })
+
+@api_view(['GET'])
+# standard search
+def standard_search(request):
+    tgt_model = request.GET.get('type')
+    # mark invalid request if target model is specified incorrectly
+    if tgt_model not in VALID_MODELS:
+        return Response('Invalid search type.', status=400)
+
+    # get a 2d array of all parameters besides the first (target model)
+    param_list = []
+    for k,v in request.GET.items():
+        param_list.append([k, v])
+    param_list = param_list[1:]
+    tgt_data = Game.objects.all()
+    for param in param_list:
+        filter = param[0]
+        tgt_data = tgt_data.filter(**{filter: param[1]})
+    # format data for return
+    data = list(tgt_data.values())
+    return JsonResponse(data, safe=False)
