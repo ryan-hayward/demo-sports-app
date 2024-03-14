@@ -1,12 +1,10 @@
-from django.shortcuts import render
 from django.apps import apps
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.request import Request
 from django.http import HttpResponse, JsonResponse
 from sklearn.linear_model import LinearRegression
-from matplotlib import pyplot as plt
 from .models import Game
+from .serializers import GameSerializer, CoachSerializer, PlayerSerializer
 import pandas as pd
 import numpy as np
 
@@ -50,13 +48,13 @@ def linear_regression(request):
 
 @api_view(['GET'])
 # standard search
-# @TODO instead of hard-coding Game, make method model agnostic as get_filters is
 def standard_search(request):
-    tgt_model = request.GET.get('search_type')
-    # mark invalid request if target model is specified incorrectly
-    if tgt_model not in VALID_MODELS:
-        return Response('Invalid search type.', status=400)
-
+    search_type = request.GET.get('search_type')
+    # find the target model
+    tgt_model = get_model(search_type)
+    # return error response if no model can be found
+    if tgt_model == None:
+        return Response(status=404)
     # get a 2d array of all parameters besides the first (target model)
     param_list = []
     for k,v in request.GET.items():
@@ -64,31 +62,64 @@ def standard_search(request):
     # ignore param specifying target model
     param_list = param_list[1:]
     # get target data given target model
-    tgt_data = Game.objects.all()
+    tgt_data = tgt_model.objects.all()
     for param in param_list:
         filter = param[0]
         tgt_data = tgt_data.filter(**{filter: param[1]})
     # format data for return
-    data = list(tgt_data.values())
-    return JsonResponse(data, safe=False)
+    serializer = serialize_data(tgt_model, tgt_data)
+    return Response(serializer.data)
 
 
 @api_view(['GET'])
 # get eligible filters for a given model
-# @TODO split model string to name conversion into a helper method that can be leveraged repeatedly
 def get_filters(request):
     # try to get the model based on the string passed from client
     search_type = request.GET.get('search_type')
     # find the target model
-    models = apps.get_models()
-    tgt_model = None
-    for model in models:
-        if model.__name__ == search_type:
-            tgt_model = model
-            continue
+    tgt_model = get_model(search_type)
+    # return error response if no model can be found
     if tgt_model == None:
-        return JsonResponse("Invalid model name. Select from dropdown.", safe=False)
+        return Response(status=404)
     else:
         # get potential attrs to filter by from the model
         attr_list = [a.name for a in tgt_model._meta.get_fields()]
         return JsonResponse(attr_list, safe=False)
+    
+
+@api_view(['GET'])
+# get eligible models to search for
+def get_search_types(request):
+    # hard code for now
+    # @TODO learn how to dynamically populate this list based on contents of the models
+    return Response(VALID_MODELS)
+
+
+# @TODO break off utils that the APIs use into a separate .py
+
+
+# helper method to get target model based on string query param
+def get_model(model_name: str):
+    # initialize target model
+    tgt_model = None
+    models = apps.get_models()
+    # loop through models until apprpriate model is found
+    for model in models:
+        if model.__name__ == model_name:
+            tgt_model = model
+            continue
+    return tgt_model
+
+
+# helper method to serialize data based on model specified in query params.
+# takes Django Model and data as args and returns serialized data for response.
+def serialize_data(model, data):
+    # serialize data based on model
+    if model.__name__ == 'Game':
+        return GameSerializer(data, many=True)
+    if model.__name__ == 'Coach':
+        return CoachSerializer(data, many=True)
+    if model.__name__ == 'PlayerBio':
+        return PlayerSerializer(data, many=True)
+    else:
+        return None

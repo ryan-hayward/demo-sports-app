@@ -10,5 +10,7 @@ urlpatterns = [
     # /analyzer/standard_search
     path("standard_search/", views.standard_search, name="std_search"),
     # /analyzer/get_filters
-    path("get_filters/", views.get_filters, name="get_filters")
+    path("get_filters/", views.get_filters, name="get_filters"),
+    # /football-api/get_search_types
+    path("get_search_types/", views.get_search_types, name='get_search_types')
 ]
