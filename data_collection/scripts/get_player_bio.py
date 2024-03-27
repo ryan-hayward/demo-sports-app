@@ -1,38 +1,43 @@
 import pandas as pd  # type: ignore
-import re
+import re, os, sys
 from bs4 import BeautifulSoup
-from get_soup import get_soup
 from datetime import datetime
+from requests_ip_rotator import ApiGateway
+
+# add root directory of project to path and get api gateway
+sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-3]))
+from data_collection.utils.api_gateway import create_api_gateway, shutdown_api_gateway
+from data_collection.scripts.get_soup import get_soup
 
 VALID_POSITIONS = ['QB', 'RB', 'FB', 'WR', 'TE', 'K']
 
-def get_player_bio(player: str, position: str) -> dict:
+def get_player_bio(player: str, position: str, gateway: ApiGateway) -> dict:
     # position arg must be formatted properly
     if position not in VALID_POSITIONS:
         raise Exception('Invalid position: "position" must be "QB", "RB", "FB", "WR", "TE", or "K"')
 
     # find href of player
     # href = get_href(player, position)
-    player_list_soup = get_player_list(player)
-    player_soup = get_href(player, position, player_list_soup)
+    player_list_soup = get_player_list(player, gateway)
+    player_soup = get_href(player, position, player_list_soup, gateway)
     
     return get_bio(player, player_soup)
 
 
+# request BS4 object based on player last name initial
+def get_player_list(name: str, gateway: ApiGateway) -> BeautifulSoup:
+    last_initial = name.split(' ')[1][0]
+    url = 'https://www.pro-football-reference.com/players/%s/' % (last_initial)
+    return get_soup(url, gateway)
+
+
 # helper function that gets the player's href
-def get_href(player: str, position: str, player_list: BeautifulSoup) -> BeautifulSoup:
+def get_href(player: str, position: str, player_list: BeautifulSoup, gateway: ApiGateway) -> BeautifulSoup:
     players = player_list.find('div', id='div_players').find_all('p')
     for p in players:
         if player in p.text and position in p.text:
-            return get_soup('https://www.pro-football-reference.com' + p.find('a').get('href'))
+            return get_soup('https://www.pro-football-reference.com' + p.find('a').get('href'), gateway)
     raise Exception('Cannot find a ' + position + ' named ' + player)
-
-
-# request BS4 object based on player last name initial
-def get_player_list(name: str) -> BeautifulSoup:
-    last_initial = name.split(' ')[1][0]
-    url = 'https://www.pro-football-reference.com/players/%s/' % (last_initial)
-    return get_soup(url)
 
 
 def get_bio(player_name: str, player_soup: BeautifulSoup) -> dict:
@@ -121,14 +126,21 @@ def get_positions(content: str) -> list:
 
 
 def get_birth_data(content: str) -> list:
-    birth_arr = content.split('in')
+    # format content so that 'in' can be accurately removed and split off
+    content = repr(content)
+    birth_arr = content.split('in\\xa0')
     # return blank values if nothing is present
     if len(birth_arr) == 0:
         return ['', '']
     # format each birth string
     formatted_arr = []
     for s in birth_arr:
-        formatted_arr.append(s.replace('\n', '').replace('\t', '').replace('\xa0', '').replace('Born:', '').strip())
+        formatted_arr.append(s.replace('\\n', '')
+                             .replace('\\t', '')
+                             .replace('\\xa0', '')
+                             .replace('Born:', '')
+                             .replace("'", "")
+                             .strip())
     # format birth date string
     dob = datetime.strptime(formatted_arr[0], "%B %d,%Y")
     birthplace = ''
@@ -138,7 +150,9 @@ def get_birth_data(content: str) -> list:
 
 
 def main():
-    get_player_bio("Cordarrelle Patterson", "WR")
+    gateway = create_api_gateway()
+    get_player_bio("Chad Henne", "QB", gateway)
+    shutdown_api_gateway(gateway)
 
 if __name__ == '__main__':
     main()

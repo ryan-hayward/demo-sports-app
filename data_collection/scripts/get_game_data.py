@@ -1,6 +1,9 @@
 from bs4 import BeautifulSoup, Comment
 from datetime import datetime
-from get_soup import get_soup
+import sys, os
+# add root directory of project to path and get api gateway
+sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-3]))
+from data_collection.scripts.get_soup import get_soup
 
 
 

@@ -1,7 +1,14 @@
 import pandas as pd
 from bs4 import BeautifulSoup
-import datetime
-from get_soup import get_soup
+import datetime 
+import sys, os
+
+# add root directory of project to path and get api gateway
+sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-3]))
+print(sys.path)
+
+from data_collection.utils.api_gateway import create_api_gateway, shutdown_api_gateway
+from data_collection.scripts.get_soup import get_soup
 
 REQUEST_COUNTER = 0
 

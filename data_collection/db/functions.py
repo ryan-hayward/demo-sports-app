@@ -8,14 +8,16 @@ import pandas as pd
 import os, sys
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-3]))
 # import required modules
-import config.db_config as config
+from config.config import config_db
 import data_collection.scripts.get_eligible_players as get_eligible_players
-import data_collection.scripts.get_game_logs as game_log
+from data_collection.scripts.get_game_logs import get_player_game_log
 import data_collection.scripts.get_game_urls as get_game_urls
 import data_collection.scripts.get_game_data as get_game_data
+from data_collection.scripts.get_player_bio import get_player_bio
+from data_collection.utils.api_gateway import create_api_gateway, shutdown_api_gateway
 
 # Set up the engine, which provides access to the DB
-params = config.config()
+params = config_db()
 connection_url = 'postgresql://%s:%s@%s/%s' % (params['user'], params['password'], params['host'], params['database'])
 engine = create_engine(connection_url, echo=True)
 
@@ -253,6 +255,25 @@ def upsert_player_bios():
     session.close()
 
 
+def upsert_player_bios_new():
+    # ensure that target table exists
+    create_all_tables()
+    gateway = create_api_gateway()
+
+    # no need to prepare request file since this is done internally, just open session
+    session = Session()
+    # get distinct player IDs
+    for player in session.query(Eligible_Player.playerID).distinct().limit(50):
+        # get player unique id
+        player_id = player._mapping['playerID']
+        # find player for each player ID
+        eligible_p = session.query(Eligible_Player).filter_by(playerID=player_id).first()
+        get_player_bio(eligible_p.name, eligible_p.position, gateway)
+        
+    shutdown_api_gateway(gateway)
+    session.commit()
+    session.close()
+
 
 '''
 Given a list of player ids, delete records in the player bios database
@@ -262,7 +283,6 @@ def delete_player_bios(player_list: list):
 
     for player in list:
         session.query(Player).filter_by(playerID=player).delete()
-    
     print('player removal complete.')
 
 
@@ -422,7 +442,7 @@ def main():
     # upsert_all_game_information(2020, 2020)
     # drop_table(Game)
     print("Hello World.")
-    upsert_player_bios()
+    upsert_player_bios_new()
 
 if __name__ == '__main__':
     main()
