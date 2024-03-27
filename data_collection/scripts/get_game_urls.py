@@ -1,6 +1,7 @@
 import pandas as pd
 from bs4 import BeautifulSoup
-import requests, time, datetime
+import datetime
+from get_soup import get_soup
 
 REQUEST_COUNTER = 0
 
@@ -75,39 +76,6 @@ def get_game_links(season: int, week_list: list) -> pd.DataFrame:
             data['link'].append(base_pfr_url + game_ext)
     # send complete dataframe back
     return pd.DataFrame(data=data)
-
-        
-'''
-Standard method used across scripts in the program
-@TODO centralize get_soup and request counter as a separate module, as they are used
-across the scripts
-'''
-def get_soup(request_url: str) -> BeautifulSoup:
-    global REQUEST_COUNTER
-    # if request counter is already at 20, sleep program for sixty seconds
-    if REQUEST_COUNTER >= 19:
-        print("Maximum requests per minute reached, now sleeping program for sixty seconds.")
-        reset_request_counter() # reset request counting file
-        for i in range(60, 0, -1):
-            time.sleep(1)
-            print(i)
-        REQUEST_COUNTER = 0
-    # store response from request
-    response = requests.get(request_url)
-    # update the request counter
-    REQUEST_COUNTER += 1
-    # return soup
-    return BeautifulSoup(response.text, 'html.parser')
-
-
-
-'''
-Reset the stored request counter to zero
-'''
-def reset_request_counter():
-    file = open("data_collection/utils/request_counter.txt", "w")
-    file.write("0")
-    file.close()
 
 
 

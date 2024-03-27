@@ -5,7 +5,6 @@ import time
 
 VALID_STATS = ['passing', 'scrimmage', 'kicking'] # valid statistics to request for
 VALID_POSITIONS = ['QB', 'RB', 'FB' 'WR', 'TE', 'K'] # valid positions in databasee
-REQUEST_COUNTER = 0 # count requests
 
 '''
 A function that takes statistic type and year as arguments and returns a pandas dataframe of player fantasy stats

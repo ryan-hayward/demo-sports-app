@@ -211,6 +211,8 @@ def delete_all_eligible_players(start_year: int, end_year: int):
 
 
 ##### PLAYER BIO TABLE MODIFICATIONS
+    
+
 '''
 Upserts unique player biographical information into the player_bios table based on the appearance
 of unique playerIDs in the Eligible Players table
@@ -227,6 +229,8 @@ def upsert_player_bios():
         player_id = player._mapping['playerID']
         # find player for each player ID
         player_record = session.query(Eligible_Player).filter_by(playerID=player_id).first()
+
+        print(player_record)
         # get birth year
         birth_year = player_id[-2:]
         # get first and last name
@@ -418,6 +422,7 @@ def main():
     # upsert_all_game_information(2020, 2020)
     # drop_table(Game)
     print("Hello World.")
+    upsert_player_bios()
 
 if __name__ == '__main__':
     main()

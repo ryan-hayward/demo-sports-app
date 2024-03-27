@@ -1,10 +1,8 @@
 import pandas as pd  # type: ignore
 from bs4 import BeautifulSoup
-import requests
-import time
+from get_soup import get_soup
 
 VALID_POSITIONS = ['QB', 'RB', 'FB', 'WR', 'TE', 'K']
-REQUEST_COUNTER = 0
 ELEMENT_TABLE = pd.read_csv('data_collection/data/metadata/field_player_mapping.csv')
 
 '''
@@ -73,49 +71,6 @@ def get_player_list_url(player: str):
 def get_player_url(href: str, season: int):
     url = 'https://www.pro-football-reference.com%s/gamelog/%s/' % (href, season)
     return url
-
-
-
-'''
-A helper method to make requests to a webpage for HTML and convert the HTML to a Beautiful Soup object.
-A counter has been included to track the # of requests made in a given run
-
-    Args:
-        request_url (str): address of page we would like to scrape
-    
-    Returns:
-        BeautifulSoup object representing parsed html
-    
-    @NOTE I have added sleep() in order to prevent session locking from PFR. These limitations are put in
-    to maintain site performance.
-'''
-def get_soup(request_url: str) -> BeautifulSoup:
-    global REQUEST_COUNTER
-    # if request counter is already at 20, sleep program for sixty seconds
-    if REQUEST_COUNTER >= 20:
-        print("Maximum requests per minute reached, now sleeping program for sixty seconds.")
-        reset_request_counter() # reset request counting file
-        for i in range(60, 0, -1):
-            time.sleep(1)
-            print(i)
-        REQUEST_COUNTER = 0
-    # store response from request
-    response = requests.get(request_url)
-    # update the request counter
-    REQUEST_COUNTER += 1
-    # return soup
-    return BeautifulSoup(response.text, 'html.parser')
-
-
-
-'''
-Reset the stored request counter to zero
-'''
-def reset_request_counter():
-    file = open("data_collection/utils/request_counter.txt", "w")
-    file.write("0")
-    file.close()
-
 
 
 '''
@@ -239,7 +194,7 @@ def kicker_game_log(soup: BeautifulSoup):
 
 
 def main():
-    df = get_player_game_log('Anthony Fasano', 'TE', 2010)
+    df = get_player_game_log('Az-Zahir Hakim', 'WR', 2000)
     df.to_csv('data_collection/data/test/test_data.csv', sep='\t', index=False)
 
 if __name__ == '__main__':

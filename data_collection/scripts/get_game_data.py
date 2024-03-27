@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup, Comment
-import time, requests, random
 from datetime import datetime
+from get_soup import get_soup
 
 
 
@@ -351,19 +351,6 @@ to make sure to submit a bs4 tag with only one commeent
 def get_comment_tags(soup: BeautifulSoup) -> list:
     comment = soup.find(string=lambda text: isinstance(text, Comment))
     return BeautifulSoup(comment.extract(), 'html.parser')
-
-
-
-'''
-Pioneering a different timeout avoidance method
-'''
-def get_soup(request_url: str) -> BeautifulSoup:
-    # store response from request and pause to avoid ban
-    response = requests.get(request_url)
-    pause = round(random.uniform(0.5, 4.5), 2)
-    time.sleep(pause)
-    # return soup
-    return BeautifulSoup(response.text, 'html.parser')
 
 
 
