@@ -12,7 +12,8 @@ def create_api_gateway() -> ApiGateway:
     gateway.start(force=True)
     return gateway
     
-
+# @TODO this isn't working right now
 def shutdown_api_gateway(gateway: ApiGateway) -> str:
     gateway.shutdown()
     return('Shut Down Gateway.')
+

@@ -1,19 +1,27 @@
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
-from models import Eligible_Player, Player, Game_Link, get_base, Game
 import pandas as pd
-
-# add root directory of project to path
 import os, sys
+# add root directory to path
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-3]))
-# import required modules
+
+# import required local modules
+# config imports
 from config.config import config_db
+# model imports 
+from data_collection.db.models.base import Base
+from data_collection.db.models.eligible_player import Eligible_Player
+from data_collection.db.models.game_link import Game_Link
+from data_collection.db.models.game_log import Game_Log
+from data_collection.db.models.game import Game
+from data_collection.db.models.player import Player
+# @TODO make these imports irrelevant by moving all scripts into the models themselves
+# @TODO make separate files for functions on each model
 import data_collection.scripts.get_eligible_players as get_eligible_players
 from data_collection.scripts.get_game_logs import get_player_game_log
 import data_collection.scripts.get_game_urls as get_game_urls
 import data_collection.scripts.get_game_data as get_game_data
-from data_collection.scripts.get_player_bio import get_player_bio
 from data_collection.utils.api_gateway import create_api_gateway, shutdown_api_gateway
 
 # Set up the engine, which provides access to the DB
@@ -263,14 +271,16 @@ def upsert_player_bios_new():
     # no need to prepare request file since this is done internally, just open session
     session = Session()
     # get distinct player IDs
-    for player in session.query(Eligible_Player.playerID).distinct().limit(50):
+    for player in session.query(Eligible_Player.playerID).distinct().limit(10):
         # get player unique id
         player_id = player._mapping['playerID']
         # find player for each player ID
-        eligible_p = session.query(Eligible_Player).filter_by(playerID=player_id).first()
-        get_player_bio(eligible_p.name, eligible_p.position, gateway)
-        
-    shutdown_api_gateway(gateway)
+        eligible_p = session.query(Eligible_Player).filter_by(playerID=player_id).first()   
+        # if player already exists, don't make a request to create the player
+        player = Player(player_id, eligible_p.name, eligible_p.position, gateway)
+        session.add(player)
+    
+    # commit to db and close session
     session.commit()
     session.close()
 
@@ -388,8 +398,7 @@ def add_columns(table_name: str, columns: list):
 Ensure all tables have been set up
 '''
 def create_all_tables():
-    get_base().metadata.create_all(bind=engine)
-
+    Base.metadata.create_all(bind=engine)
 
 
 '''
