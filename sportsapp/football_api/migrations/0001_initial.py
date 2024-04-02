@@ -351,7 +351,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.DO_NOTHING,
                         primary_key=True,
                         serialize=False,
-                        to="analyzer.playerbio",
+                        to="football_api.playerbio",
                     ),
                 ),
                 ("gameid", models.CharField(db_column="gameID")),

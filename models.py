@@ -6,7 +6,6 @@
 #   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
 # Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
-from django.contrib.postgres.fields import ArrayField
 
 
 class AuthGroup(models.Model):
@@ -78,7 +77,7 @@ class AuthUserUserPermissions(models.Model):
         unique_together = (('user', 'permission'),)
 
 
-class Coach(models.Model):
+class Coaches(models.Model):
     coachid = models.CharField(db_column='coachID', primary_key=True)  # Field name made lowercase.
     name = models.CharField(blank=True, null=True)
     start_year = models.IntegerField(blank=True, null=True)
@@ -150,9 +149,9 @@ class DjangoSession(models.Model):
         db_table = 'django_session'
 
 
-class EligiblePlayer(models.Model):
+class EligiblePlayers(models.Model):
     seasonid = models.CharField(db_column='seasonID', primary_key=True)  # Field name made lowercase.
-    playerid = models.ForeignKey('PlayerBio', models.DO_NOTHING, db_column='playerID', blank=True, null=True)  # Field name made lowercase.
+    playerid = models.CharField(db_column='playerID', blank=True, null=True)  # Field name made lowercase.
     name = models.CharField(blank=True, null=True)
     position = models.CharField(blank=True, null=True)
     age = models.IntegerField(blank=True, null=True)
@@ -163,7 +162,7 @@ class EligiblePlayer(models.Model):
         db_table = 'eligible_players'
 
 
-class GameLink(models.Model):
+class GameLinks(models.Model):
     season = models.IntegerField(blank=True, null=True)
     week = models.IntegerField(blank=True, null=True)
     game_link = models.CharField(primary_key=True)
@@ -174,7 +173,7 @@ class GameLink(models.Model):
         db_table = 'game_links'
 
 
-class Game(models.Model):
+class Games(models.Model):
     gameid = models.CharField(db_column='gameID', primary_key=True)  # Field name made lowercase.
     datetime = models.DateTimeField(blank=True, null=True)
     playoff = models.BooleanField(blank=True, null=True)
@@ -244,15 +243,12 @@ class Game(models.Model):
     class Meta:
         managed = False
         db_table = 'games'
-    
-    def __str__(self):
-        return self.gameid
 
 
-class PlayerBio(models.Model):
+class Player(models.Model):
     playerid = models.CharField(db_column='playerID', primary_key=True)  # Field name made lowercase.
     name = models.CharField(blank=True, null=True)
-    positions = ArrayField(models.CharField(), blank=True, null=True)
+    positions = models.TextField(blank=True, null=True)  # This field type is a guess.
     throws = models.CharField(blank=True, null=True)
     height = models.IntegerField(blank=True, null=True)
     weight = models.IntegerField(blank=True, null=True)
@@ -260,15 +256,15 @@ class PlayerBio(models.Model):
     dob = models.DateField(blank=True, null=True)
     birth_region = models.CharField(blank=True, null=True)
     college = models.CharField(blank=True, null=True)
-    draft = models.CharField(blank=True, null=True)
+    draft = models.TextField(blank=True, null=True)  # This field type is a guess.
 
     class Meta:
         managed = False
         db_table = 'player'
 
 
-class PlayerGameLog(models.Model):
-    playerid = models.OneToOneField(PlayerBio, models.DO_NOTHING, db_column='playerID', primary_key=True)  # Field name made lowercase. The composite primary key (playerID, gameID) found, that is not supported. The first column is selected.
+class PlayerGameLogs(models.Model):
+    playerid = models.CharField(db_column='playerID', primary_key=True)  # Field name made lowercase. The composite primary key (playerID, gameID) found, that is not supported. The first column is selected.
     gameid = models.CharField(db_column='gameID')  # Field name made lowercase.
     date = models.DateField(blank=True, null=True)
     game = models.IntegerField(blank=True, null=True)

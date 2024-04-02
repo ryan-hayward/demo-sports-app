@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from .views import views, player_bio
 
 # @TODO change "analyzer" to include api, since that is what it is
 urlpatterns = [
@@ -12,5 +12,7 @@ urlpatterns = [
     # /analyzer/get_filters
     path("get_filters/", views.get_filters, name="get_filters"),
     # /football-api/get_search_types
-    path("get_search_types/", views.get_search_types, name='get_search_types')
+    path("get_search_types/", views.get_search_types, name='get_search_types'),
+    # /football-api/get_player_bio
+    path("get_player_bio/", player_bio.get_player_bio, name="get_player_bio")
 ]

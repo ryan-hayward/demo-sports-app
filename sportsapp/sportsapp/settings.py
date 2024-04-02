@@ -83,8 +83,8 @@ WSGI_APPLICATION = "sportsapp.wsgi.application"
 # get appropriate db configs
 import sys, os
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-3]))
-import config.config as config
-params = config.config()
+from config.config import config_db
+params = config_db()
 
 DATABASES = {
     "default": {

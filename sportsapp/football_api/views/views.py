@@ -3,8 +3,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.http import HttpResponse, JsonResponse
 from sklearn.linear_model import LinearRegression
-from .models import Game
-from .serializers import GameSerializer, CoachSerializer, PlayerSerializer
+from ..models import Game
+from ..serializers import GameSerializer, CoachSerializer, PlayerSerializer
 import pandas as pd
 import numpy as np
 
